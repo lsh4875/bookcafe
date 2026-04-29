@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
 
     // ── Google Sheets 기록 ───────────────────────────────────────────────────
     const auth = await getAuthClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sheets = google.sheets({ version: "v4", auth: auth as any });
 
     const sheetId = process.env.GOOGLE_SHEET_ID;
