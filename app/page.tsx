@@ -1,0 +1,221 @@
+// app/page.tsx
+// 일오책방 MVP - 북카페 수요 검증용 첫 화면
+// Next.js App Router + Tailwind CSS
+
+import Link from "next/link";
+
+// ────────────────────────────────────────────────────────────
+// 데이터 (추후 별도 파일 또는 CMS로 분리)
+// ────────────────────────────────────────────────────────────
+
+const CURATIONS = [
+  { id: 1, label: "저시력자도 읽기 편한 책" },
+  { id: 2, label: "지친 하루 끝에 읽기 좋은 책" },
+  { id: 3, label: "비 오는 날 읽기 좋은 책" },
+];
+
+const POPUP = {
+  month: "4월 · 부천",
+  title: "4월의 조용한 독서 팝업",
+  location: "부천 공유공간",
+  capacity: "8명 (소규모)",
+  time: "오후 2시 ~ 5시",
+  price: "추후 공개",
+};
+
+const SURVEY_QUESTIONS = [
+  "어떤 장르를 좋아하나요?",
+  "북카페에서 가장 기대하는 건?",
+  "팝업 북카페 참여 의향이 있나요?",
+  "적정 이용 가격은 얼마인가요?",
+  "어느 지역이면 방문하기 좋나요?",
+];
+
+// ────────────────────────────────────────────────────────────
+// 섹션 컴포넌트들 (같은 파일 / 추후 components/ 로 분리 가능)
+// ────────────────────────────────────────────────────────────
+
+function Hero() {
+  return (
+    <header className="bg-[#2c2a26] text-[#f0ebe3] px-6 py-16 text-center relative overflow-hidden">
+      {/* 배경 라인 텍스처 */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-10"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(255,255,255,0.15) 48px)",
+        }}
+      />
+
+      <div className="relative z-10 max-w-xl mx-auto">
+        <span className="inline-block text-[10px] tracking-[0.18em] uppercase text-[#c9b99a] border border-[#c9b99a]/30 bg-white/5 px-3 py-1 rounded-full mb-5">
+          일오책방
+        </span>
+
+        <h1 className="font-serif text-4xl sm:text-5xl font-light tracking-widest leading-tight mb-4">
+          혼자여도<br />괜찮은 시간
+        </h1>
+
+        <div className="w-10 h-px bg-[#c9b99a] opacity-50 mx-auto my-5" />
+
+        <p className="text-sm text-[#a89b87] tracking-wide leading-8">
+          조용히 책 읽고 쉬어가는<br />팝업 북카페
+        </p>
+      </div>
+    </header>
+  );
+}
+
+function CurationSection() {
+  return (
+    <section className="px-5 py-10 max-w-2xl mx-auto">
+      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">
+        curation
+      </p>
+      <h2 className="text-xl font-serif font-light text-[#2c2a26] mb-6 leading-snug">
+        오늘의 책 큐레이션
+      </h2>
+
+      <ul className="flex flex-col gap-2.5 mb-6">
+        {CURATIONS.map((item) => (
+          <li key={item.id}>
+            <Link
+              href={`/curation/${item.id}`}
+              className="flex items-center gap-4 bg-white border border-[#e0d9cf] rounded-xl px-5 py-4
+                         hover:-translate-y-0.5 hover:shadow-md transition-all duration-150"
+            >
+              <span className="font-serif text-2xl font-light text-[#c9b99a] w-7 shrink-0">
+                {String(item.id).padStart(2, "0")}
+              </span>
+              <span className="text-sm text-[#4a4540] leading-relaxed">
+                {item.label}
+              </span>
+              <span className="ml-auto text-[#c9b99a] text-sm">→</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <Link
+        href="/curation"
+        className="text-sm text-[#7a6e60] border-b border-[#c5b9aa] hover:text-[#2c2a26] transition-colors"
+      >
+        큐레이션 전체 보기 →
+      </Link>
+    </section>
+  );
+}
+
+function PopupSection() {
+  return (
+    <section className="px-5 py-10 max-w-2xl mx-auto border-t border-[#e0d9cf]">
+      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">
+        popup
+      </p>
+      <h2 className="text-xl font-serif font-light text-[#2c2a26] mb-6 leading-snug">
+        팝업 북카페 예약
+      </h2>
+
+      <div className="bg-[#2c2a26] text-[#f0ebe3] rounded-2xl p-6">
+        <span className="inline-block text-[10px] tracking-wider bg-white/10 text-[#c9b99a] border border-[#c9b99a]/30 px-3 py-1 rounded-full mb-3">
+          {POPUP.month}
+        </span>
+
+        <h3 className="font-serif text-lg font-normal leading-snug mb-5 text-[#f0ebe3]">
+          {POPUP.title}
+        </h3>
+
+        <dl className="grid grid-cols-2 gap-y-3 gap-x-4 mb-6 text-sm">
+          {[
+            ["장소", POPUP.location],
+            ["인원", POPUP.capacity],
+            ["시간", POPUP.time],
+            ["가격", POPUP.price],
+          ].map(([label, value]) => (
+            <div key={label} className="flex flex-col gap-0.5">
+              <dt className="text-[11px] text-[#9a8c7a]">{label}</dt>
+              <dd className="text-[#e8e0d4]">{value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <Link
+          href="/reservation"
+          className="block w-full bg-[#c9b99a] hover:bg-[#b8a688] text-[#2c2a26] text-sm font-medium
+                     text-center py-3 rounded-lg tracking-wide transition-colors"
+        >
+          예약 신청하기
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function SurveySection() {
+  return (
+    <section className="px-5 py-10 max-w-2xl mx-auto border-t border-[#e0d9cf]">
+      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">
+        survey
+      </p>
+      <h2 className="text-xl font-serif font-light text-[#2c2a26] mb-6 leading-snug">
+        취향 설문에 참여해주세요
+      </h2>
+
+      <div className="bg-white border border-[#e0d9cf] rounded-2xl p-6">
+        <span className="inline-block text-[10px] tracking-wider bg-[#f5f0ea] text-[#9a8c7a] border border-[#e0d9cf] px-3 py-1 rounded-full mb-3">
+          5분 설문 · 익명
+        </span>
+
+        <p className="text-sm text-[#6a5f52] leading-7 mb-4">
+          북카페를 더 나은 공간으로 만들기 위해<br className="hidden sm:block" />
+          여러분의 취향을 알고 싶어요.
+        </p>
+
+        <ul className="flex flex-col gap-1.5 mb-6">
+          {SURVEY_QUESTIONS.map((q, i) => (
+            <li
+              key={i}
+              className="flex items-start gap-2 text-[13px] text-[#9a8c7a] leading-relaxed"
+            >
+              <span className="text-[#c9b99a] text-base leading-tight shrink-0">·</span>
+              {q}
+            </li>
+          ))}
+        </ul>
+
+        <Link
+          href="/survey"
+          className="block w-full text-center text-sm py-3 rounded-lg border border-[#c5b9aa]
+                     text-[#2c2a26] hover:bg-[#f5f0ea] transition-colors tracking-wide"
+        >
+          설문 참여하기
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="text-center py-8 text-xs text-[#b0a495] tracking-wide leading-8 border-t border-[#e0d9cf]">
+      <p>일오책방</p>
+      <p>@ilochekbang · 소식 받기</p>
+    </footer>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// 메인 페이지
+// ────────────────────────────────────────────────────────────
+
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-[#f8f5f0]">
+      <Hero />
+      <CurationSection />
+      <PopupSection />
+      <SurveySection />
+      <Footer />
+    </main>
+  );
+}
