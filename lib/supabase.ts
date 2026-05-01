@@ -1,14 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// 클라이언트 컴포넌트에서 사용 (싱글톤)
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
-// 서버 사이드용 (API Route에서 사용)
-export const supabase = createClient(
-  supabaseUrl,
-  typeof window === "undefined" ? supabaseServiceKey : supabaseAnonKey
-);
-
-// 클라이언트 사이드용 (로그인 페이지 등에서 사용)
-export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+// 기존 코드 호환용 (점진적 교체)
+export const supabaseClient = createClient();

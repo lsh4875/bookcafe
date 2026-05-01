@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabaseClient as supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
 
 type Mode = "login" | "signup" | "verify";
 
@@ -21,6 +21,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -28,6 +29,7 @@ export default function LoginPage() {
   };
 
   const handleKakaoLogin = async () => {
+    const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "kakao",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -49,6 +51,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     setMessage("");
+    const supabase = createClient();
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -70,6 +73,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     setMessage("");
+    const supabase = createClient();
     const { error } = await supabase.auth.verifyOtp({
       email,
       token: otp,
@@ -94,6 +98,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     setMessage("");
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       showMessage("이메일 또는 비밀번호가 올바르지 않아요.");
@@ -106,7 +111,6 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-[#f8f5f0] flex items-center justify-center px-4">
       <div className="max-w-sm w-full">
-        {/* 헤더 */}
         <div className="text-center mb-8">
           <p className="text-xs tracking-[0.3em] text-[#c9b99a] uppercase mb-3 font-medium">
             일오책방
@@ -161,14 +165,12 @@ export default function LoginPage() {
             </>
           ) : (
             <>
-              {/* 카카오 로그인 버튼 — 공식 디자인 가이드 준수 */}
               <button
                 onClick={handleKakaoLogin}
                 className="w-full flex items-center justify-center gap-2.5 rounded-xl px-6 py-3
-                  text-sm font-medium transition-all duration-150 hover:brightness-95 active:brightness-90 relative"
+                  text-sm font-medium transition-all duration-150 hover:brightness-95 active:brightness-90"
                 style={{ backgroundColor: "#FEE500", color: "#000000" }}
               >
-                {/* 카카오 공식 심볼 */}
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M9 1.5C4.85786 1.5 1.5 4.18629 1.5 7.5C1.5 9.62803 2.80474 11.4958 4.79289 12.5625L4.07107 15.3107C4.00992 15.5429 4.26992 15.7247 4.46447 15.5858L7.82843 13.3857C8.21569 13.4278 8.60502 13.5 9 13.5C13.1421 13.5 16.5 10.8137 16.5 7.5C16.5 4.18629 13.1421 1.5 9 1.5Z"
@@ -178,7 +180,6 @@ export default function LoginPage() {
                 카카오 로그인
               </button>
 
-              {/* 구글 로그인 버튼 */}
               <button
                 onClick={handleGoogleLogin}
                 className="w-full flex items-center justify-center gap-2.5 bg-white border border-[#e0d9cf]

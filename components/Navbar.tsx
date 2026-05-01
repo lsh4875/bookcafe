@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { supabaseClient } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
@@ -13,17 +13,22 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
+
     return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
-    await supabaseClient.auth.signOut();
+    const supabase = createClient();
+    await supabase.auth.signOut();
     router.push("/login");
   };
 
