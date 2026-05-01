@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- 배경 -->
+  <rect width="32" height="32" rx="8" fill="#2c2a26"/>
+  <!-- 책 모양 -->
+  <rect x="8" y="8" width="10" height="16" rx="1.5" fill="#c9b99a"/>
+  <rect x="9" y="8" width="1.5" height="16" fill="#a89070"/>
+  <!-- 두번째 책 -->
+  <rect x="19" y="10" width="5" height="14" rx="1" fill="#f0ebe3" opacity="0.7"/>
+</svg>
