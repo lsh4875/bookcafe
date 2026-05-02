@@ -10,7 +10,9 @@ type Profile = {
   name: string | null;
   nickname: string | null;
   phone: string | null;
-  address: string | null;
+  address_road: string | null;
+  address_detail: string | null;
+  address_zip: string | null;
 };
 
 type Reservation = {
@@ -31,7 +33,14 @@ export default function MyPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: "", nickname: "", phone: "", address: "" });
+  const [form, setForm] = useState({
+    name: "",
+    nickname: "",
+    phone: "",
+    address_road: "",
+    address_detail: "",
+    address_zip: "",
+  });
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
 
@@ -54,7 +63,9 @@ export default function MyPage() {
           name: profileData.name || "",
           nickname: profileData.nickname || "",
           phone: profileData.phone || "",
-          address: profileData.address || "",
+          address_road: profileData.address_road || "",
+          address_detail: profileData.address_detail || "",
+          address_zip: profileData.address_zip || "",
         });
       }
 
@@ -79,7 +90,9 @@ export default function MyPage() {
         name: form.name,
         nickname: form.nickname,
         phone: form.phone,
-        address: form.address,
+        address_road: form.address_road,
+        address_detail: form.address_detail,
+        address_zip: form.address_zip,
       })
       .eq("id", profile!.id);
 
@@ -139,22 +152,63 @@ export default function MyPage() {
 
           {editing ? (
             <div className="space-y-4">
-              {[
-                { label: "이름", key: "name", placeholder: "홍길동" },
-                { label: "닉네임", key: "nickname", placeholder: "책방지기" },
-                { label: "연락처", key: "phone", placeholder: "01012345678" },
-                { label: "주소", key: "address", placeholder: "서울시 마포구" },
-              ].map(({ label, key, placeholder }) => (
-                <div key={key} className="space-y-1.5">
-                  <label className="text-xs text-[#8a8480]">{label}</label>
-                  <input
-                    value={form[key as keyof typeof form]}
-                    onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))}
-                    placeholder={placeholder}
-                    className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
-                  />
-                </div>
-              ))}
+              {/* 이름 */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#8a8480]">이름</label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="홍길동"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                />
+              </div>
+
+              {/* 닉네임 */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#8a8480]">닉네임</label>
+                <input
+                  value={form.nickname}
+                  onChange={(e) => setForm((prev) => ({ ...prev, nickname: e.target.value }))}
+                  placeholder="책방지기"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                />
+              </div>
+
+              {/* 연락처 */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#8a8480]">연락처</label>
+                <input
+                  value={form.phone}
+                  onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                  placeholder="01012345678"
+                  inputMode="tel"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                />
+              </div>
+
+              {/* 주소 */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#8a8480]">배송 주소</label>
+                <input
+                  value={form.address_zip}
+                  onChange={(e) => setForm((prev) => ({ ...prev, address_zip: e.target.value }))}
+                  placeholder="우편번호"
+                  inputMode="numeric"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                />
+                <input
+                  value={form.address_road}
+                  onChange={(e) => setForm((prev) => ({ ...prev, address_road: e.target.value }))}
+                  placeholder="도로명 주소"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                />
+                <input
+                  value={form.address_detail}
+                  onChange={(e) => setForm((prev) => ({ ...prev, address_detail: e.target.value }))}
+                  placeholder="상세 주소"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                />
+              </div>
 
               {saveMsg && (
                 <p className="text-xs text-center text-green-600">{saveMsg}</p>
@@ -182,13 +236,25 @@ export default function MyPage() {
                 { label: "이름", value: profile?.name },
                 { label: "닉네임", value: profile?.nickname },
                 { label: "연락처", value: profile?.phone },
-                { label: "주소", value: profile?.address },
               ].map(({ label, value }) => (
                 <div key={label} className="space-y-1">
                   <p className="text-xs text-[#8a8480]">{label}</p>
                   <p className="text-sm text-[#2c2a26]">{value || "-"}</p>
                 </div>
               ))}
+
+              {/* 주소 표시 */}
+              <div className="space-y-1">
+                <p className="text-xs text-[#8a8480]">배송 주소</p>
+                {profile?.address_road ? (
+                  <div className="text-sm text-[#2c2a26] space-y-0.5">
+                    <p>{profile.address_zip && `(${profile.address_zip})`} {profile.address_road}</p>
+                    {profile.address_detail && <p>{profile.address_detail}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-[#2c2a26]">-</p>
+                )}
+              </div>
             </div>
           )}
         </div>
