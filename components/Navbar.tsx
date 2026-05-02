@@ -6,11 +6,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
+// 이 경로들에서는 Navbar를 숨김
+const HIDDEN_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
+
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // 숨김 경로 확인
+  const shouldHide = HIDDEN_PATHS.some((path) => pathname?.startsWith(path));
 
   useEffect(() => {
     const supabase = createClient();
@@ -19,12 +25,17 @@ export default function Navbar() {
       setUser(session?.user ?? null);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // 숨김 경로면 스페이서도 없이 완전히 null 반환
+  if (shouldHide) return null;
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -105,9 +116,21 @@ export default function Navbar() {
             className="sm:hidden flex flex-col gap-1.5 p-1"
             aria-label="메뉴"
           >
-            <span className={`block w-5 h-px bg-[#2c2a26] transition-all duration-200 ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
-            <span className={`block w-5 h-px bg-[#2c2a26] transition-all duration-200 ${menuOpen ? "opacity-0" : ""}`} />
-            <span className={`block w-5 h-px bg-[#2c2a26] transition-all duration-200 ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+            <span
+              className={`block w-5 h-px bg-[#2c2a26] transition-all duration-200 ${
+                menuOpen ? "rotate-45 translate-y-2" : ""
+              }`}
+            />
+            <span
+              className={`block w-5 h-px bg-[#2c2a26] transition-all duration-200 ${
+                menuOpen ? "opacity-0" : ""
+              }`}
+            />
+            <span
+              className={`block w-5 h-px bg-[#2c2a26] transition-all duration-200 ${
+                menuOpen ? "-rotate-45 -translate-y-2" : ""
+              }`}
+            />
           </button>
         </div>
 
@@ -139,7 +162,10 @@ export default function Navbar() {
                   마이페이지
                 </Link>
                 <button
-                  onClick={() => { setMenuOpen(false); handleLogout(); }}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleLogout();
+                  }}
                   className="text-sm text-left text-[#8a8480]"
                 >
                   로그아웃

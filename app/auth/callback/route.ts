@@ -6,6 +6,7 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const type = requestUrl.searchParams.get("type"); // "recovery" | null
   const origin = requestUrl.origin;
 
   if (code) {
@@ -31,10 +32,14 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      // 비밀번호 재설정이면 reset-password 페이지로
+      if (type === "recovery") {
+        return NextResponse.redirect(`${origin}/auth/reset-password`);
+      }
+      // 일반 OAuth(구글 등)이면 홈으로
       return NextResponse.redirect(`${origin}/`);
     }
   }
 
-  // 에러 시 로그인 페이지로
   return NextResponse.redirect(`${origin}/login`);
 }

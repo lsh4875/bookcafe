@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 
 type Mode = "login" | "signup" | "verify";
@@ -247,6 +248,18 @@ export default function LoginPage() {
               >
                 {loading ? "처리 중..." : mode === "login" ? "이메일로 로그인" : "이메일로 회원가입"}
               </button>
+
+              {/* 비밀번호 찾기 - 로그인 모드일 때만 표시 */}
+              {mode === "login" && (
+                <p className="text-center">
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors"
+                  >
+                    비밀번호를 잊으셨나요?
+                  </Link>
+                </p>
+              )}
 
               <p className="text-center text-xs text-[#8a8480]">
                 {mode === "login" ? "아직 계정이 없으신가요?" : "이미 계정이 있으신가요?"}

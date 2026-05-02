@@ -39,7 +39,8 @@ export async function middleware(req: NextRequest) {
   if (
     !session &&
     !req.nextUrl.pathname.startsWith("/login") &&
-    !req.nextUrl.pathname.startsWith("/auth")
+    !req.nextUrl.pathname.startsWith("/auth") &&
+    !req.nextUrl.pathname.startsWith("/forgot-password")
   ) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
