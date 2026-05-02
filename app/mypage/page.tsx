@@ -186,16 +186,9 @@ export default function MyPage() {
                 />
               </div>
 
-              {/* 주소 */}
+              {/* 배송 주소 */}
               <div className="space-y-1.5">
                 <label className="text-xs text-[#8a8480]">배송 주소</label>
-                <input
-                  value={form.address_zip}
-                  onChange={(e) => setForm((prev) => ({ ...prev, address_zip: e.target.value }))}
-                  placeholder="우편번호"
-                  inputMode="numeric"
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
-                />
                 <input
                   value={form.address_road}
                   onChange={(e) => setForm((prev) => ({ ...prev, address_road: e.target.value }))}
@@ -206,6 +199,13 @@ export default function MyPage() {
                   value={form.address_detail}
                   onChange={(e) => setForm((prev) => ({ ...prev, address_detail: e.target.value }))}
                   placeholder="상세 주소"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                />
+                <input
+                  value={form.address_zip}
+                  onChange={(e) => setForm((prev) => ({ ...prev, address_zip: e.target.value }))}
+                  placeholder="우편번호"
+                  inputMode="numeric"
                   className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
                 />
               </div>
@@ -243,13 +243,14 @@ export default function MyPage() {
                 </div>
               ))}
 
-              {/* 주소 표시 */}
+              {/* 배송 주소 표시 */}
               <div className="space-y-1">
                 <p className="text-xs text-[#8a8480]">배송 주소</p>
                 {profile?.address_road ? (
                   <div className="text-sm text-[#2c2a26] space-y-0.5">
-                    <p>{profile.address_zip && `(${profile.address_zip})`} {profile.address_road}</p>
+                    <p>{profile.address_road}</p>
                     {profile.address_detail && <p>{profile.address_detail}</p>}
+                    {profile.address_zip && <p>{profile.address_zip}</p>}
                   </div>
                 ) : (
                   <p className="text-sm text-[#2c2a26]">-</p>
