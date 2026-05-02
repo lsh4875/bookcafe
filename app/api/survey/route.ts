@@ -9,7 +9,7 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { genre, expectation, intention, price, region, submittedAt } = body;
+    const { genre, expectation, intention, price, region, submittedAt, userId } = body;
 
     if (!genre || !intention) {
       return NextResponse.json({ error: "필수 항목이 누락됐습니다." }, { status: 400 });
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       price: price || "",
       region: region || "",
       submitted_at: submittedAt,
+      user_id: userId || null,
     }]);
 
     if (error) {

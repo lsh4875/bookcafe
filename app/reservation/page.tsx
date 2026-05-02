@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 
 const TIME_SLOTS = [
   "14:00 ~ 14:30",
@@ -39,9 +40,7 @@ export default function ReservationPage() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
     setForm((prev) => ({
@@ -59,6 +58,10 @@ export default function ReservationPage() {
     }
     setLoading(true);
     try {
+      // 현재 로그인 유저 가져오기
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
       const res = await fetch("/api/reservation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,6 +70,7 @@ export default function ReservationPage() {
           submittedAt: new Date().toISOString(),
           popup: "4월의 조용한 독서 팝업",
           place: "부천 공유공간",
+          userId: session?.user?.id || null,
         }),
       });
       if (res.ok) {
@@ -83,7 +87,6 @@ export default function ReservationPage() {
 
   return (
     <main className="min-h-screen bg-[#f8f5f0] px-4 py-14 md:py-20">
-      {/* Header */}
       <div className="max-w-xl mx-auto mb-10 text-center">
         <p className="text-xs tracking-[0.3em] text-[#c9b99a] uppercase mb-3 font-medium">
           Popup Reservation
@@ -117,62 +120,28 @@ export default function ReservationPage() {
         <div className="mt-6 w-12 h-px bg-[#c9b99a] mx-auto" />
       </div>
 
-      {/* Form Card */}
       <div className="max-w-xl mx-auto bg-white border border-[#e8e2d9] rounded-2xl shadow-sm p-7 md:p-10 space-y-6">
 
-        {/* 이름 */}
         <Field label="이름" required error={errors.name}>
-          <input
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            placeholder="홍길동"
-            className={inputCls(errors.name)}
-          />
+          <input name="name" value={form.name} onChange={handleChange} placeholder="홍길동" className={inputCls(errors.name)} />
         </Field>
 
-        {/* 연락처 */}
         <Field label="연락처" required error={errors.phone}>
-          <input
-            name="phone"
-            value={form.phone}
-            onChange={handleChange}
-            placeholder="01012345678"
-            inputMode="tel"
-            className={inputCls(errors.phone)}
-          />
+          <input name="phone" value={form.phone} onChange={handleChange} placeholder="01012345678" inputMode="tel" className={inputCls(errors.phone)} />
         </Field>
 
-        {/* 이메일 */}
         <Field label="이메일" required error={errors.email}>
-          <input
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="hello@email.com"
-            className={inputCls(errors.email)}
-          />
+          <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="hello@email.com" className={inputCls(errors.email)} />
         </Field>
 
-        {/* 시간대 선택 */}
         <Field label="참여 시간대" required error={errors.timeSlot}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
             {TIME_SLOTS.map((slot) => (
               <button
                 key={slot}
                 type="button"
-                onClick={() => {
-                  setForm((prev) => ({ ...prev, timeSlot: slot }));
-                  setErrors((prev) => ({ ...prev, timeSlot: "" }));
-                }}
-                className={`
-                  py-2.5 px-3 rounded-lg text-sm border transition-all duration-150 text-center
-                  ${form.timeSlot === slot
-                    ? "bg-[#2c2a26] text-[#f8f5f0] border-[#2c2a26] font-medium"
-                    : "bg-[#f8f5f0] text-[#5a5855] border-[#e0d9cf] hover:border-[#c9b99a]"
-                  }
-                `}
+                onClick={() => { setForm((prev) => ({ ...prev, timeSlot: slot })); setErrors((prev) => ({ ...prev, timeSlot: "" })); }}
+                className={`py-2.5 px-3 rounded-lg text-sm border transition-all duration-150 text-center ${form.timeSlot === slot ? "bg-[#2c2a26] text-[#f8f5f0] border-[#2c2a26] font-medium" : "bg-[#f8f5f0] text-[#5a5855] border-[#e0d9cf] hover:border-[#c9b99a]"}`}
               >
                 {slot}
               </button>
@@ -180,46 +149,23 @@ export default function ReservationPage() {
           </div>
         </Field>
 
-        {/* 인원 */}
         <Field label="참여 인원" required>
-          <select
-            name="headcount"
-            value={form.headcount}
-            onChange={handleChange}
-            className={inputCls()}
-          >
+          <select name="headcount" value={form.headcount} onChange={handleChange} className={inputCls()}>
             {[1, 2, 3, 4].map((n) => (
-              <option key={n} value={n}>
-                {n}명
-              </option>
+              <option key={n} value={n}>{n}명</option>
             ))}
           </select>
         </Field>
 
-        {/* 메모 */}
         <Field label="전달 사항">
-          <textarea
-            name="note"
-            value={form.note}
-            onChange={handleChange}
-            rows={3}
-            placeholder="알레르기, 좌석 요청 등 자유롭게 적어주세요."
-            className={`${inputCls()} resize-none`}
-          />
+          <textarea name="note" value={form.note} onChange={handleChange} rows={3} placeholder="알레르기, 좌석 요청 등 자유롭게 적어주세요." className={`${inputCls()} resize-none`} />
         </Field>
 
-        {/* 개인정보 동의 */}
         <div className="pt-1">
           <label className="flex items-start gap-3 cursor-pointer group">
             <span
-              onClick={() => {
-                setForm((prev) => ({ ...prev, agree: !prev.agree }));
-                setErrors((prev) => ({ ...prev, agree: "" }));
-              }}
-              className={`
-                mt-0.5 w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors
-                ${form.agree ? "bg-[#2c2a26] border-[#2c2a26]" : "border-[#c9b99a] bg-white"}
-              `}
+              onClick={() => { setForm((prev) => ({ ...prev, agree: !prev.agree })); setErrors((prev) => ({ ...prev, agree: "" })); }}
+              className={`mt-0.5 w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors ${form.agree ? "bg-[#2c2a26] border-[#2c2a26]" : "border-[#c9b99a] bg-white"}`}
             >
               {form.agree && (
                 <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -232,24 +178,19 @@ export default function ReservationPage() {
               <span className="text-[#c9b99a]"> *</span>
             </span>
           </label>
-          {errors.agree && (
-            <p className="mt-1.5 ml-8 text-xs text-red-500">{errors.agree}</p>
-          )}
+          {errors.agree && <p className="mt-1.5 ml-8 text-xs text-red-500">{errors.agree}</p>}
         </div>
 
-        {/* Submit */}
         <button
           type="button"
           onClick={handleSubmit}
           disabled={loading}
-          className="w-full py-3.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl font-medium tracking-wide
-            hover:bg-[#3d3a34] active:scale-[0.99] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+          className="w-full py-3.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl font-medium tracking-wide hover:bg-[#3d3a34] active:scale-[0.99] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
         >
           {loading ? "예약 중..." : "예약 신청하기"}
         </button>
       </div>
 
-      {/* Footer note */}
       <p className="max-w-xl mx-auto mt-6 text-center text-xs text-[#a09b94]">
         예약 확정 안내는 이메일 또는 문자로 발송됩니다.
       </p>
@@ -257,26 +198,11 @@ export default function ReservationPage() {
   );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 function inputCls(error?: string) {
-  return `w-full px-4 py-2.5 rounded-lg border text-sm text-[#2c2a26] bg-[#f8f5f0]
-    placeholder:text-[#bdb8b0] outline-none transition-colors
-    focus:border-[#c9b99a] focus:bg-white
-    ${error ? "border-red-400" : "border-[#e0d9cf]"}`;
+  return `w-full px-4 py-2.5 rounded-lg border text-sm text-[#2c2a26] bg-[#f8f5f0] placeholder:text-[#bdb8b0] outline-none transition-colors focus:border-[#c9b99a] focus:bg-white ${error ? "border-red-400" : "border-[#e0d9cf]"}`;
 }
 
-function Field({
-  label,
-  required,
-  error,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode; }) {
   return (
     <div className="space-y-1.5">
       <label className="block text-sm font-medium text-[#2c2a26]">
