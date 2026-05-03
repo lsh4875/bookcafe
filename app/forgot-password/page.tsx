@@ -16,12 +16,13 @@ export default function ForgotPasswordPage() {
     setError("");
 
     const supabase = createClient();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      redirectTo: `${siteUrl}/auth/callback?type=recovery`,
     });
 
     if (error) {
-      setError("이메일 전송에 실패했습니다. 다시 시도해주세요.");
+      setError("이메일 전송에 실패했습니다. 구글/카카오 소셜 로그인 계정은 비밀번호 찾기를 이용할 수 없어요.");
     } else {
       setSent(true);
     }
@@ -97,7 +98,7 @@ export default function ForgotPasswordPage() {
               </div>
 
               {error && (
-                <p className="text-xs text-red-400 text-center">{error}</p>
+                <p className="text-xs text-red-400 text-center leading-relaxed">{error}</p>
               )}
 
               <button
@@ -116,7 +117,7 @@ export default function ForgotPasswordPage() {
             로그인으로 돌아가기
           </Link>
           <span className="text-[#e0d9cf]">·</span>
-          <Link href="/signup" className="text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors">
+          <Link href="/login" className="text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors">
             회원가입
           </Link>
         </div>
