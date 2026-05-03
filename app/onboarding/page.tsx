@@ -54,7 +54,7 @@ export default function OnboardingPage() {
     if (error) {
       alert("저장에 실패했습니다. 다시 시도해주세요.");
     } else {
-      router.push("/");
+      window.location.href = "/";  // router.push 대신 hard redirect
     }
     setLoading(false);
   };
