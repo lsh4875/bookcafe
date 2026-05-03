@@ -1,22 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CURATIONS, getCurationById } from "../data";
+import { createAdminSupabaseClient } from "@/lib/supabase-server";
 
-// Static params for build-time generation
-export function generateStaticParams() {
-  return CURATIONS.map((c) => ({ id: c.id }));
-}
+type Book = {
+  id: string;
+  title: string;
+  author: string;
+  publisher: string;
+  year: number;
+  description: string;
+  tag?: string | null;
+  order_index?: number;
+};
 
-const MOOD_STYLES: Record<
-  string,
-  {
-    heroBg: string;
-    heroText: string;
-    tag: string;
-    divider: string;
-    badge: string;
-  }
-> = {
+const MOOD_STYLES: Record<string, {
+  heroBg: string; heroText: string; tag: string; divider: string; badge: string;
+}> = {
   soft: {
     heroBg: "bg-[#ede8e0]",
     heroText: "text-[#6b5e4e]",
@@ -40,23 +39,46 @@ const MOOD_STYLES: Record<
   },
 };
 
+async function getCuration(id: string) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("curations")
+    .select(`*, books(*)`)
+    .eq("id", id)
+    .eq("is_active", true)
+    .order("order_index", { ascending: true, referencedTable: "books" })
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+export async function generateStaticParams() {
+  const supabase = createAdminSupabaseClient();
+  const { data } = await supabase
+    .from("curations")
+    .select("id")
+    .eq("is_active", true);
+
+  return (data ?? []).map((c) => ({ id: c.id }));
+}
+
 export default async function CurationDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const curation = getCurationById(id);
+  const curation = await getCuration(id);
   if (!curation) notFound();
 
-  const style = MOOD_STYLES[curation.mood];
+  const style = MOOD_STYLES[curation.mood] ?? MOOD_STYLES.soft;
 
   return (
     <main className="min-h-screen bg-[#f8f5f0]">
       {/* Hero */}
       <div className={`${style.heroBg} px-4 pt-14 pb-10 md:pt-20 md:pb-14`}>
         <div className="max-w-2xl mx-auto">
-          {/* Back */}
           <Link
             href="/curation"
             className={`inline-flex items-center gap-1.5 text-xs ${style.heroText} opacity-70 hover:opacity-100 transition-opacity mb-6`}
@@ -67,21 +89,15 @@ export default async function CurationDetailPage({
             큐레이션 목록
           </Link>
 
-          {/* Emoji */}
           <p className="text-4xl mb-4">{curation.emoji}</p>
-
-          {/* Title */}
           <h1 className="text-2xl md:text-3xl font-bold text-[#2c2a26] leading-snug">
             {curation.title}
           </h1>
-          <p className={`mt-2 text-sm ${style.heroText}`}>
-            {curation.subtitle}
-          </p>
+          <p className={`mt-2 text-sm ${style.heroText}`}>{curation.subtitle}</p>
 
-          {/* Stats */}
           <div className="mt-5 flex items-center gap-3">
             <span className={`text-xs px-3 py-1 rounded-full border font-medium ${style.badge}`}>
-              총 {curation.books.length}권
+              총 {(curation.books as Book[])?.length ?? 0}권
             </span>
             <span className={`text-xs px-3 py-1 rounded-full border font-medium ${style.badge}`}>
               일오책방 선정
@@ -90,24 +106,19 @@ export default async function CurationDetailPage({
         </div>
       </div>
 
-      {/* Divider */}
       <div className={`h-px w-full ${style.divider}`} />
 
       {/* Book List */}
       <div className="max-w-2xl mx-auto px-4 py-10 md:py-14 space-y-5">
-        {curation.books.map((book, i) => (
+        {(curation.books as Book[])?.map((book, i) => (
           <div
             key={book.id}
-            className="bg-white border border-[#e8e2d9] rounded-2xl p-5 md:p-6 shadow-sm
-              hover:shadow-md transition-shadow duration-200"
+            className="bg-white border border-[#e8e2d9] rounded-2xl p-5 md:p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
           >
             <div className="flex gap-4 items-start">
-              {/* Index */}
               <div className="shrink-0 w-8 h-8 rounded-full bg-[#f0ece5] flex items-center justify-center">
                 <span className="text-xs font-bold text-[#c9b99a]">{i + 1}</span>
               </div>
-
-              {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <h2 className="text-base font-bold text-[#2c2a26] leading-snug">
@@ -119,13 +130,9 @@ export default async function CurationDetailPage({
                     </span>
                   )}
                 </div>
-
-                {/* Author & Publisher */}
                 <p className="mt-1 text-xs text-[#a09b94]">
                   {book.author} · {book.publisher} · {book.year}
                 </p>
-
-                {/* Description */}
                 <p className="mt-2.5 text-sm text-[#6b6760] leading-relaxed">
                   {book.description}
                 </p>
@@ -146,8 +153,7 @@ export default async function CurationDetailPage({
           </p>
           <Link
             href="/reservation"
-            className="inline-block px-6 py-2.5 bg-[#c9b99a] text-[#2c2a26] rounded-xl
-              text-sm font-medium hover:bg-[#b8a88a] transition-colors"
+            className="inline-block px-6 py-2.5 bg-[#c9b99a] text-[#2c2a26] rounded-xl text-sm font-medium hover:bg-[#b8a88a] transition-colors"
           >
             예약 신청하기
           </Link>

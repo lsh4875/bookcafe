@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CURATIONS } from "./data";
+import { createAdminSupabaseClient } from "@/lib/supabase-server";
 
 const MOOD_STYLES: Record<string, { bg: string; border: string; accent: string; label: string }> = {
   soft: {
@@ -22,7 +22,21 @@ const MOOD_STYLES: Record<string, { bg: string; border: string; accent: string; 
   },
 };
 
-export default function CurationPage() {
+async function getCurations() {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("curations")
+    .select(`*, books(*)`)
+    .eq("is_active", true)
+    .order("order_index", { ascending: true });
+
+  if (error) return [];
+  return data;
+}
+
+export default async function CurationPage() {
+  const curations = await getCurations();
+
   return (
     <main className="min-h-screen bg-[#f8f5f0] px-4 py-14 md:py-20">
       {/* Header */}
@@ -41,8 +55,8 @@ export default function CurationPage() {
 
       {/* Curation Cards */}
       <div className="max-w-2xl mx-auto space-y-5">
-        {CURATIONS.map((curation, i) => {
-          const style = MOOD_STYLES[curation.mood];
+        {curations.map((curation, i) => {
+          const style = MOOD_STYLES[curation.mood] ?? MOOD_STYLES.soft;
           return (
             <Link
               key={curation.id}
@@ -55,30 +69,21 @@ export default function CurationPage() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  {/* Number */}
                   <p className={`text-xs font-medium tracking-widest mb-2 ${style.accent}`}>
-                    0{i + 1}
+                    {String(i + 1).padStart(2, "0")}
                   </p>
-
-                  {/* Title */}
                   <h2 className="text-lg md:text-xl font-bold text-[#2c2a26] leading-snug group-hover:text-[#3d3a34] transition-colors">
                     {curation.emoji} {curation.title}
                   </h2>
-
-                  {/* Subtitle */}
                   <p className="mt-1.5 text-sm text-[#6b6760]">
                     {curation.subtitle}
                   </p>
-
-                  {/* Book count badge */}
                   <div className="mt-4 flex items-center gap-2">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${style.label}`}>
-                      책 {curation.books.length}권
+                      책 {curation.books?.length ?? 0}권
                     </span>
                   </div>
                 </div>
-
-                {/* Arrow */}
                 <div className={`shrink-0 mt-1 transition-transform duration-200 group-hover:translate-x-1 ${style.accent}`}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -90,7 +95,6 @@ export default function CurationPage() {
         })}
       </div>
 
-      {/* Footer note */}
       <p className="max-w-2xl mx-auto mt-10 text-center text-xs text-[#b0aba4]">
         큐레이션은 일오책방이 직접 읽고 선정한 책들입니다.
       </p>

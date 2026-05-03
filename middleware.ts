@@ -57,11 +57,25 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
+  // 관리자 페이지 접근 시 권한 체크
+  if (user && req.nextUrl.pathname.startsWith("/admin")) {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.is_admin) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
+
   // 로그인 상태 + 온보딩 미완료 → 온보딩으로
   if (
     user &&
     !req.nextUrl.pathname.startsWith("/onboarding") &&
-    !req.nextUrl.pathname.startsWith("/auth")
+    !req.nextUrl.pathname.startsWith("/auth") &&
+    !req.nextUrl.pathname.startsWith("/admin")
   ) {
     const { data: profile } = await supabaseAdmin
       .from("profiles")

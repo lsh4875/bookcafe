@@ -23,6 +23,22 @@ type Reservation = {
   popup: string;
   place: string;
   submitted_at: string;
+  status: string;
+};
+
+const STATUS_LABEL: Record<string, { label: string; style: string }> = {
+  pending: {
+    label: "예약대기",
+    style: "text-[#c9b99a] border-[#e8e2d9]",
+  },
+  confirmed: {
+    label: "예약확정",
+    style: "text-green-600 border-green-200",
+  },
+  cancelled: {
+    label: "취소됨",
+    style: "text-[#b0aba4] border-[#e0d9cf] line-through",
+  },
 };
 
 export default function MyPage() {
@@ -43,11 +59,12 @@ export default function MyPage() {
   });
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { return; }
+      if (!session) return;
 
       const userId = session.user.id;
 
@@ -71,7 +88,7 @@ export default function MyPage() {
 
       const { data: resData } = await supabase
         .from("reservations")
-        .select("id, name, time_slot, headcount, popup, place, submitted_at")
+        .select("id, name, time_slot, headcount, popup, place, submitted_at, status")
         .eq("user_id", userId)
         .order("submitted_at", { ascending: false });
 
@@ -107,11 +124,36 @@ export default function MyPage() {
     setSaving(false);
   };
 
+  const handleCancel = async (id: number) => {
+    if (!confirm("예약을 취소하시겠습니까?")) return;
+
+    setCancellingId(id);
+    try {
+      const res = await fetch("/api/reservation", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "cancelled" }),
+      });
+
+      if (res.ok) {
+        setReservations((prev) =>
+          prev.map((r) => r.id === id ? { ...r, status: "cancelled" } : r)
+        );
+      } else {
+        alert("취소 처리 중 오류가 발생했습니다.");
+      }
+    } catch {
+      alert("네트워크 오류가 발생했습니다.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.replace("/");
   };
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8f5f0] flex items-center justify-center">
@@ -144,7 +186,6 @@ export default function MyPage() {
             )}
           </div>
 
-          {/* 이메일 (수정 불가) */}
           <div className="space-y-1">
             <p className="text-xs text-[#8a8480]">이메일</p>
             <p className="text-sm text-[#2c2a26]">{profile?.email || "-"}</p>
@@ -152,63 +193,24 @@ export default function MyPage() {
 
           {editing ? (
             <div className="space-y-4">
-              {/* 이름 */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-[#8a8480]">이름</label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="홍길동"
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
-                />
-              </div>
-
-              {/* 닉네임 */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-[#8a8480]">닉네임</label>
-                <input
-                  value={form.nickname}
-                  onChange={(e) => setForm((prev) => ({ ...prev, nickname: e.target.value }))}
-                  placeholder="책방지기"
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
-                />
-              </div>
-
-              {/* 연락처 */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-[#8a8480]">연락처</label>
-                <input
-                  value={form.phone}
-                  onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-                  placeholder="01012345678"
-                  inputMode="tel"
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
-                />
-              </div>
-
-              {/* 배송 주소 */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-[#8a8480]">배송 주소</label>
-                <input
-                  value={form.address_road}
-                  onChange={(e) => setForm((prev) => ({ ...prev, address_road: e.target.value }))}
-                  placeholder="도로명 주소"
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
-                />
-                <input
-                  value={form.address_detail}
-                  onChange={(e) => setForm((prev) => ({ ...prev, address_detail: e.target.value }))}
-                  placeholder="상세 주소"
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
-                />
-                <input
-                  value={form.address_zip}
-                  onChange={(e) => setForm((prev) => ({ ...prev, address_zip: e.target.value }))}
-                  placeholder="우편번호"
-                  inputMode="numeric"
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
-                />
-              </div>
+              {[
+                { key: "name", label: "이름", placeholder: "홍길동" },
+                { key: "nickname", label: "닉네임", placeholder: "책방지기" },
+                { key: "phone", label: "연락처", placeholder: "01012345678" },
+                { key: "address_road", label: "도로명 주소", placeholder: "도로명 주소" },
+                { key: "address_detail", label: "상세 주소", placeholder: "상세 주소" },
+                { key: "address_zip", label: "우편번호", placeholder: "우편번호" },
+              ].map(({ key, label, placeholder }) => (
+                <div key={key} className="space-y-1.5">
+                  <label className="text-xs text-[#8a8480]">{label}</label>
+                  <input
+                    value={form[key as keyof typeof form]}
+                    onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                  />
+                </div>
+              ))}
 
               {saveMsg && (
                 <p className="text-xs text-center text-green-600">{saveMsg}</p>
@@ -243,7 +245,6 @@ export default function MyPage() {
                 </div>
               ))}
 
-              {/* 배송 주소 표시 */}
               <div className="space-y-1">
                 <p className="text-xs text-[#8a8480]">배송 주소</p>
                 {profile?.address_road ? (
@@ -276,26 +277,47 @@ export default function MyPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {reservations.map((res) => (
-                <div key={res.id} className="border border-[#e8e2d9] rounded-xl p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-[#2c2a26]">{res.popup}</p>
-                    <span className="text-xs text-[#c9b99a] border border-[#e8e2d9] px-2 py-0.5 rounded-full">
-                      예약완료
-                    </span>
+              {reservations.map((res) => {
+                const statusInfo = STATUS_LABEL[res.status] ?? STATUS_LABEL.pending;
+                const isCancelled = res.status === "cancelled";
+                const isCancelling = cancellingId === res.id;
+
+                return (
+                  <div
+                    key={res.id}
+                    className={`border border-[#e8e2d9] rounded-xl p-4 space-y-2 transition-opacity ${isCancelled ? "opacity-50" : ""}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-[#2c2a26]">{res.popup}</p>
+                      <span className={`text-xs border px-2 py-0.5 rounded-full ${statusInfo.style}`}>
+                        {statusInfo.label}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-xs text-[#8a8480]">📍 {res.place}</p>
+                      <p className="text-xs text-[#8a8480]">🕐 {res.time_slot}</p>
+                      <p className="text-xs text-[#8a8480]">👥 {res.headcount}명</p>
+                    </div>
+
+                    {res.submitted_at && (
+                      <p className="text-xs text-[#b0aba4]">
+                        신청일 {new Date(res.submitted_at).toLocaleDateString("ko-KR")}
+                      </p>
+                    )}
+
+                    {!isCancelled && (
+                      <button
+                        onClick={() => handleCancel(res.id)}
+                        disabled={isCancelling}
+                        className="mt-1 text-xs text-[#b0aba4] hover:text-red-400 transition-colors disabled:opacity-60"
+                      >
+                        {isCancelling ? "취소 중..." : "예약 취소"}
+                      </button>
+                    )}
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-[#8a8480]">📍 {res.place}</p>
-                    <p className="text-xs text-[#8a8480]">🕐 {res.time_slot}</p>
-                    <p className="text-xs text-[#8a8480]">👥 {res.headcount}명</p>
-                  </div>
-                  {res.submitted_at && (
-                    <p className="text-xs text-[#b0aba4]">
-                      신청일 {new Date(res.submitted_at).toLocaleDateString("ko-KR")}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
