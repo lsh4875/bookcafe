@@ -47,7 +47,7 @@ export default function MyPage() {
   useEffect(() => {
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push("/login"); return; }
+      if (!session) { return; }
 
       const userId = session.user.id;
 
@@ -108,10 +108,10 @@ export default function MyPage() {
   };
 
   const handleLogout = async () => {
-    await fetch("/auth/signout", { method: "POST" });
+    await supabase.auth.signOut();
     window.location.replace("/");
   };
-
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8f5f0] flex items-center justify-center">

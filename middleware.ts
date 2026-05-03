@@ -1,8 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// 비로그인도 접근 가능한 경로
 const PUBLIC_PATHS = [
   "/",
   "/login",
@@ -13,6 +13,11 @@ const PUBLIC_PATHS = [
   "/curation",
   "/reservation",
 ];
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({
@@ -36,33 +41,32 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const isPublic = PUBLIC_PATHS.some((path) =>
     req.nextUrl.pathname === path || req.nextUrl.pathname.startsWith(path + "/")
   );
 
   // 비로그인 + 비공개 경로 → 로그인으로
-  if (!session && !isPublic) {
+  if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
   // 로그인 상태 + 로그인 페이지 → 홈으로
-  if (session && req.nextUrl.pathname.startsWith("/login")) {
+  if (user && req.nextUrl.pathname.startsWith("/login")) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
   // 로그인 상태 + 온보딩 미완료 → 온보딩으로
-  // (온보딩/auth 경로 자체는 제외)
   if (
-    session &&
+    user &&
     !req.nextUrl.pathname.startsWith("/onboarding") &&
     !req.nextUrl.pathname.startsWith("/auth")
   ) {
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("is_onboarded")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .single();
 
     if (profile && !profile.is_onboarded) {

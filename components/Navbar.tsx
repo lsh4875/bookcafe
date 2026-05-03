@@ -40,7 +40,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.replace("/");
   };
 
   const navLinks = [

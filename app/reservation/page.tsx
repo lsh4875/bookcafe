@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
@@ -15,6 +15,7 @@ const TIME_SLOTS = [
 
 export default function ReservationPage() {
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -25,7 +26,39 @@ export default function ReservationPage() {
     agree: false,
   });
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        setIsLoggedIn(true);
+        setUserId(session.user.id);
+
+        // 프로필에서 이름/연락처/이메일 가져오기
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name, phone, email")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile) {
+          setForm((prev) => ({
+            ...prev,
+            name: profile.name || "",
+            phone: profile.phone || "",
+            email: profile.email || session.user.email || "",
+          }));
+        }
+      }
+      setProfileLoading(false);
+    };
+    loadProfile();
+  }, []);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -58,10 +91,6 @@ export default function ReservationPage() {
     }
     setLoading(true);
     try {
-      // 현재 로그인 유저 가져오기
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-
       const res = await fetch("/api/reservation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -70,7 +99,7 @@ export default function ReservationPage() {
           submittedAt: new Date().toISOString(),
           popup: "4월의 조용한 독서 팝업",
           place: "부천 공유공간",
-          userId: session?.user?.id || null,
+          userId,
         }),
       });
       if (res.ok) {
@@ -84,6 +113,14 @@ export default function ReservationPage() {
       setLoading(false);
     }
   };
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8f5f0] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#e0d9cf] border-t-[#c9b99a] rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f8f5f0] px-4 py-14 md:py-20">
@@ -120,20 +157,56 @@ export default function ReservationPage() {
         <div className="mt-6 w-12 h-px bg-[#c9b99a] mx-auto" />
       </div>
 
+      {/* 로그인 유저 안내 */}
+      {isLoggedIn && (
+        <div className="max-w-xl mx-auto mb-4 px-4 py-3 bg-[#f0ebe3] border border-[#e0d9cf] rounded-xl">
+          <p className="text-xs text-[#8a8480] text-center">
+            마이페이지에 저장된 정보로 자동 입력되었습니다.
+          </p>
+        </div>
+      )}
+
       <div className="max-w-xl mx-auto bg-white border border-[#e8e2d9] rounded-2xl shadow-sm p-7 md:p-10 space-y-6">
 
+        {/* 이름 */}
         <Field label="이름" required error={errors.name}>
-          <input name="name" value={form.name} onChange={handleChange} placeholder="홍길동" className={inputCls(errors.name)} />
+          <input
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="홍길동"
+            disabled={isLoggedIn}
+            className={`${inputCls(errors.name)} ${isLoggedIn ? "opacity-60 cursor-not-allowed" : ""}`}
+          />
         </Field>
 
+        {/* 연락처 */}
         <Field label="연락처" required error={errors.phone}>
-          <input name="phone" value={form.phone} onChange={handleChange} placeholder="01012345678" inputMode="tel" className={inputCls(errors.phone)} />
+          <input
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            placeholder="01012345678"
+            inputMode="tel"
+            disabled={isLoggedIn}
+            className={`${inputCls(errors.phone)} ${isLoggedIn ? "opacity-60 cursor-not-allowed" : ""}`}
+          />
         </Field>
 
+        {/* 이메일 */}
         <Field label="이메일" required error={errors.email}>
-          <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="hello@email.com" className={inputCls(errors.email)} />
+          <input
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="hello@email.com"
+            disabled={isLoggedIn}
+            className={`${inputCls(errors.email)} ${isLoggedIn ? "opacity-60 cursor-not-allowed" : ""}`}
+          />
         </Field>
 
+        {/* 시간대 */}
         <Field label="참여 시간대" required error={errors.timeSlot}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
             {TIME_SLOTS.map((slot) => (
@@ -149,6 +222,7 @@ export default function ReservationPage() {
           </div>
         </Field>
 
+        {/* 인원 */}
         <Field label="참여 인원" required>
           <select name="headcount" value={form.headcount} onChange={handleChange} className={inputCls()}>
             {[1, 2, 3, 4].map((n) => (
@@ -157,12 +231,14 @@ export default function ReservationPage() {
           </select>
         </Field>
 
+        {/* 메모 */}
         <Field label="전달 사항">
           <textarea name="note" value={form.note} onChange={handleChange} rows={3} placeholder="알레르기, 좌석 요청 등 자유롭게 적어주세요." className={`${inputCls()} resize-none`} />
         </Field>
 
+        {/* 개인정보 동의 */}
         <div className="pt-1">
-          <label className="flex items-start gap-3 cursor-pointer group">
+          <label className="flex items-start gap-3 cursor-pointer">
             <span
               onClick={() => { setForm((prev) => ({ ...prev, agree: !prev.agree })); setErrors((prev) => ({ ...prev, agree: "" })); }}
               className={`mt-0.5 w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors ${form.agree ? "bg-[#2c2a26] border-[#2c2a26]" : "border-[#c9b99a] bg-white"}`}
