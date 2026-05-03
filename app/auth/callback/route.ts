@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const type = requestUrl.searchParams.get("type"); // "recovery" | null
+  const type = requestUrl.searchParams.get("type");
   const origin = requestUrl.origin;
 
   if (code) {
@@ -17,9 +17,7 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
+          getAll() { return cookieStore.getAll(); },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
@@ -32,11 +30,24 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // 비밀번호 재설정이면 reset-password 페이지로
       if (type === "recovery") {
         return NextResponse.redirect(`${origin}/auth/reset-password`);
       }
-      // 일반 OAuth(구글 등)이면 홈으로
+
+      // 온보딩 완료 여부 체크
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_onboarded")
+          .eq("id", session.user.id)
+          .single();
+
+        if (!profile?.is_onboarded) {
+          return NextResponse.redirect(`${origin}/onboarding`);
+        }
+      }
+
       return NextResponse.redirect(`${origin}/`);
     }
   }
