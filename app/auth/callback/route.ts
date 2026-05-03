@@ -2,6 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { Resend } from "resend";
+import { welcomeEmailHtml } from "@/lib/email/templates";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -37,26 +41,36 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login`);
   }
 
-  // 비밀번호 재설정
   if (type === "recovery") {
     return NextResponse.redirect(`${origin}/auth/reset-password`);
   }
 
-  // 유저 정보 가져오기
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.redirect(`${origin}/login`);
   }
 
-  // 온보딩 완료 여부 체크
   const { data: profile } = await supabase
     .from("profiles")
-    .select("is_onboarded")
+    .select("is_onboarded, name")
     .eq("id", user.id)
     .single();
 
+  // 신규 가입 시 환영 이메일 발송
   if (!profile?.is_onboarded) {
+    try {
+      const { data, error: emailError } = await resend.emails.send({
+        from: "일오책방 <onboarding@resend.dev>",
+        to: user.email!,
+        subject: "[일오책방] 환영합니다!",
+        html: welcomeEmailHtml({ name: profile?.name || "회원" }),
+      });
+      console.log("[welcome email sent]", data);
+      if (emailError) console.error("[welcome email error]", emailError);
+    } catch (emailError) {
+      console.error("[welcome email send error]", emailError);
+    }
     return NextResponse.redirect(`${origin}/onboarding`);
   }
 

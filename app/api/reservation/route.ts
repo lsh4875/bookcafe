@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
+import { reservationEmailHtml } from "@/lib/email/templates";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,6 +38,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // 예약 완료 이메일 발송
+    try {
+      const { data, error: emailError } = await resend.emails.send({
+        from: "일오책방 <onboarding@resend.dev>",
+        to: email,
+        subject: "[일오책방] 예약이 접수되었습니다",
+        html: reservationEmailHtml({
+          name,
+          popup,
+          place,
+          timeSlot,
+          headcount: String(headcount),
+        }),
+      });
+      console.log("[email sent]", data);
+      if (emailError) console.error("[email error]", emailError);
+    } catch (emailError) {
+      console.error("[email send error]", emailError);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("[reservation API error]", error);
@@ -41,7 +65,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 예약 상태 변경 (취소 등)
 export async function PATCH(req: NextRequest) {
   try {
     const { id, status } = await req.json();

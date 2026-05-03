@@ -29,14 +29,6 @@ export default function LoginPage() {
     });
   };
 
-  const handleKakaoLogin = async () => {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "kakao",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-  };
-
   const handleSignup = async () => {
     if (!email || !password || !passwordConfirm) {
       showMessage("모든 항목을 입력해주세요.");
@@ -62,7 +54,6 @@ export default function LoginPage() {
     if (error) {
       showMessage(error.message);
     } else if (data.user && data.user.identities?.length === 0) {
-      // 이미 존재하는 이메일
       showMessage("이미 가입된 이메일이에요. 로그인해주세요.");
     } else {
       showMessage("인증 코드를 이메일로 발송했어요!", "success");
@@ -170,21 +161,28 @@ export default function LoginPage() {
             </>
           ) : (
             <>
-              <button
-                onClick={handleKakaoLogin}
-                className="w-full flex items-center justify-center gap-2.5 rounded-xl px-6 py-3
-                  text-sm font-medium transition-all duration-150 hover:brightness-95 active:brightness-90"
-                style={{ backgroundColor: "#FEE500", color: "#000000" }}
-              >
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M9 1.5C4.85786 1.5 1.5 4.18629 1.5 7.5C1.5 9.62803 2.80474 11.4958 4.79289 12.5625L4.07107 15.3107C4.00992 15.5429 4.26992 15.7247 4.46447 15.5858L7.82843 13.3857C8.21569 13.4278 8.60502 13.5 9 13.5C13.1421 13.5 16.5 10.8137 16.5 7.5C16.5 4.18629 13.1421 1.5 9 1.5Z"
-                    fill="#3C1E1E"
-                  />
-                </svg>
-                카카오 로그인
-              </button>
+              {/* 카카오 로그인 (베타 기간 중 비활성화) */}
+              <div className="relative">
+                <button
+                  disabled
+                  className="w-full flex items-center justify-center gap-2.5 rounded-xl px-6 py-3
+                    text-sm font-medium opacity-40 cursor-not-allowed"
+                  style={{ backgroundColor: "#FEE500", color: "#000000" }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M9 1.5C4.85786 1.5 1.5 4.18629 1.5 7.5C1.5 9.62803 2.80474 11.4958 4.79289 12.5625L4.07107 15.3107C4.00992 15.5429 4.26992 15.7247 4.46447 15.5858L7.82843 13.3857C8.21569 13.4278 8.60502 13.5 9 13.5C13.1421 13.5 16.5 10.8137 16.5 7.5C16.5 4.18629 13.1421 1.5 9 1.5Z"
+                      fill="#3C1E1E"
+                    />
+                  </svg>
+                  카카오 로그인
+                </button>
+                <span className="absolute -top-2 right-2 text-[10px] bg-[#2c2a26] text-[#f8f5f0] px-2 py-0.5 rounded-full">
+                  베타 기간 중 불가
+                </span>
+              </div>
 
+              {/* 구글 로그인 */}
               <button
                 onClick={handleGoogleLogin}
                 className="w-full flex items-center justify-center gap-2.5 bg-white border border-[#e0d9cf]
