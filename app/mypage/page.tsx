@@ -108,7 +108,7 @@ export default function MyPage() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut({ scope: "local" });
+    await fetch("/auth/signout", { method: "POST" });
     window.location.replace("/");
   };
 
