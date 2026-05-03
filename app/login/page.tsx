@@ -53,13 +53,17 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
+
     if (error) {
       showMessage(error.message);
+    } else if (data.user && data.user.identities?.length === 0) {
+      // 이미 존재하는 이메일
+      showMessage("이미 가입된 이메일이에요. 로그인해주세요.");
     } else {
       showMessage("인증 코드를 이메일로 발송했어요!", "success");
       setMode("verify");
@@ -249,7 +253,6 @@ export default function LoginPage() {
                 {loading ? "처리 중..." : mode === "login" ? "이메일로 로그인" : "이메일로 회원가입"}
               </button>
 
-              {/* 비밀번호 찾기 - 로그인 모드일 때만 표시 */}
               {mode === "login" && (
                 <p className="text-center">
                   <Link
