@@ -4,18 +4,21 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
-const TIME_SLOTS = [
-  "14:00 ~ 14:30",
-  "14:30 ~ 15:00",
-  "15:00 ~ 15:30",
-  "15:30 ~ 16:00",
-  "16:00 ~ 16:30",
-  "16:30 ~ 17:00",
-];
+type Popup = {
+  id: string;
+  month: string;
+  title: string;
+  location: string;
+  capacity: string;
+  time: string;
+  price: string;
+  time_slots: string[];
+};
 
 export default function ReservationPage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [popup, setPopup] = useState<Popup | null>(null);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -31,15 +34,26 @@ export default function ReservationPage() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const loadData = async () => {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
 
+      // 팝업 정보 불러오기
+      const { data: popupData } = await supabase
+        .from("popups")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      setPopup(popupData);
+
+      // 유저 정보 불러오기
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsLoggedIn(true);
         setUserId(session.user.id);
 
-        // 프로필에서 이름/연락처/이메일 가져오기
         const { data: profile } = await supabase
           .from("profiles")
           .select("name, phone, email")
@@ -57,7 +71,7 @@ export default function ReservationPage() {
       }
       setProfileLoading(false);
     };
-    loadProfile();
+    loadData();
   }, []);
 
   const validate = () => {
@@ -97,8 +111,8 @@ export default function ReservationPage() {
         body: JSON.stringify({
           ...form,
           submittedAt: new Date().toISOString(),
-          popup: "4월의 조용한 독서 팝업",
-          place: "부천 공유공간",
+          popup: popup?.title ?? "",
+          place: popup?.location ?? "",
           userId,
         }),
       });
@@ -122,6 +136,22 @@ export default function ReservationPage() {
     );
   }
 
+  if (!popup) {
+    return (
+      <div className="min-h-screen bg-[#f8f5f0] flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-sm text-[#8a8480]">현재 진행 중인 팝업이 없습니다.</p>
+          <button
+            onClick={() => router.push("/")}
+            className="mt-4 text-xs text-[#c9b99a] hover:text-[#2c2a26] transition-colors"
+          >
+            홈으로 돌아가기 →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#f8f5f0] px-4 py-14 md:py-20">
       <div className="max-w-xl mx-auto mb-10 text-center">
@@ -129,7 +159,7 @@ export default function ReservationPage() {
           Popup Reservation
         </p>
         <h1 className="text-2xl md:text-3xl font-bold text-[#2c2a26] leading-snug">
-          4월의 조용한 독서 팝업
+          {popup.title}
         </h1>
         <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm text-[#6b6760]">
           <span className="flex items-center gap-1.5">
@@ -137,27 +167,26 @@ export default function ReservationPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
             </svg>
-            부천 공유공간
+            {popup.location}
           </span>
           <span className="hidden sm:block text-[#c9b99a]">·</span>
           <span className="flex items-center gap-1.5">
             <svg className="w-4 h-4 text-[#c9b99a]" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
-            오후 2시 ~ 5시
+            {popup.time}
           </span>
           <span className="hidden sm:block text-[#c9b99a]">·</span>
           <span className="flex items-center gap-1.5">
             <svg className="w-4 h-4 text-[#c9b99a]" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
             </svg>
-            총 8석
+            {popup.capacity}
           </span>
         </div>
         <div className="mt-6 w-12 h-px bg-[#c9b99a] mx-auto" />
       </div>
 
-      {/* 로그인 유저 안내 */}
       {isLoggedIn && (
         <div className="max-w-xl mx-auto mb-4 px-4 py-3 bg-[#f0ebe3] border border-[#e0d9cf] rounded-xl">
           <p className="text-xs text-[#8a8480] text-center">
@@ -168,7 +197,6 @@ export default function ReservationPage() {
 
       <div className="max-w-xl mx-auto bg-white border border-[#e8e2d9] rounded-2xl shadow-sm p-7 md:p-10 space-y-6">
 
-        {/* 이름 */}
         <Field label="이름" required error={errors.name}>
           <input
             name="name"
@@ -180,7 +208,6 @@ export default function ReservationPage() {
           />
         </Field>
 
-        {/* 연락처 */}
         <Field label="연락처" required error={errors.phone}>
           <input
             name="phone"
@@ -193,7 +220,6 @@ export default function ReservationPage() {
           />
         </Field>
 
-        {/* 이메일 */}
         <Field label="이메일" required error={errors.email}>
           <input
             name="email"
@@ -206,15 +232,21 @@ export default function ReservationPage() {
           />
         </Field>
 
-        {/* 시간대 */}
         <Field label="참여 시간대" required error={errors.timeSlot}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
-            {TIME_SLOTS.map((slot) => (
+            {(popup.time_slots ?? []).map((slot) => (
               <button
                 key={slot}
                 type="button"
-                onClick={() => { setForm((prev) => ({ ...prev, timeSlot: slot })); setErrors((prev) => ({ ...prev, timeSlot: "" })); }}
-                className={`py-2.5 px-3 rounded-lg text-sm border transition-all duration-150 text-center ${form.timeSlot === slot ? "bg-[#2c2a26] text-[#f8f5f0] border-[#2c2a26] font-medium" : "bg-[#f8f5f0] text-[#5a5855] border-[#e0d9cf] hover:border-[#c9b99a]"}`}
+                onClick={() => {
+                  setForm((prev) => ({ ...prev, timeSlot: slot }));
+                  setErrors((prev) => ({ ...prev, timeSlot: "" }));
+                }}
+                className={`py-2.5 px-3 rounded-lg text-sm border transition-all duration-150 text-center ${
+                  form.timeSlot === slot
+                    ? "bg-[#2c2a26] text-[#f8f5f0] border-[#2c2a26] font-medium"
+                    : "bg-[#f8f5f0] text-[#5a5855] border-[#e0d9cf] hover:border-[#c9b99a]"
+                }`}
               >
                 {slot}
               </button>
@@ -222,26 +254,40 @@ export default function ReservationPage() {
           </div>
         </Field>
 
-        {/* 인원 */}
         <Field label="참여 인원" required>
-          <select name="headcount" value={form.headcount} onChange={handleChange} className={inputCls()}>
+          <select
+            name="headcount"
+            value={form.headcount}
+            onChange={handleChange}
+            className={inputCls()}
+          >
             {[1, 2, 3, 4].map((n) => (
               <option key={n} value={n}>{n}명</option>
             ))}
           </select>
         </Field>
 
-        {/* 메모 */}
         <Field label="전달 사항">
-          <textarea name="note" value={form.note} onChange={handleChange} rows={3} placeholder="알레르기, 좌석 요청 등 자유롭게 적어주세요." className={`${inputCls()} resize-none`} />
+          <textarea
+            name="note"
+            value={form.note}
+            onChange={handleChange}
+            rows={3}
+            placeholder="알레르기, 좌석 요청 등 자유롭게 적어주세요."
+            className={`${inputCls()} resize-none`}
+          />
         </Field>
 
-        {/* 개인정보 동의 */}
         <div className="pt-1">
           <label className="flex items-start gap-3 cursor-pointer">
             <span
-              onClick={() => { setForm((prev) => ({ ...prev, agree: !prev.agree })); setErrors((prev) => ({ ...prev, agree: "" })); }}
-              className={`mt-0.5 w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors ${form.agree ? "bg-[#2c2a26] border-[#2c2a26]" : "border-[#c9b99a] bg-white"}`}
+              onClick={() => {
+                setForm((prev) => ({ ...prev, agree: !prev.agree }));
+                setErrors((prev) => ({ ...prev, agree: "" }));
+              }}
+              className={`mt-0.5 w-5 h-5 shrink-0 rounded border flex items-center justify-center transition-colors ${
+                form.agree ? "bg-[#2c2a26] border-[#2c2a26]" : "border-[#c9b99a] bg-white"
+              }`}
             >
               {form.agree && (
                 <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -275,10 +321,22 @@ export default function ReservationPage() {
 }
 
 function inputCls(error?: string) {
-  return `w-full px-4 py-2.5 rounded-lg border text-sm text-[#2c2a26] bg-[#f8f5f0] placeholder:text-[#bdb8b0] outline-none transition-colors focus:border-[#c9b99a] focus:bg-white ${error ? "border-red-400" : "border-[#e0d9cf]"}`;
+  return `w-full px-4 py-2.5 rounded-lg border text-sm text-[#2c2a26] bg-[#f8f5f0] placeholder:text-[#bdb8b0] outline-none transition-colors focus:border-[#c9b99a] focus:bg-white ${
+    error ? "border-red-400" : "border-[#e0d9cf]"
+  }`;
 }
 
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode; }) {
+function Field({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="block text-sm font-medium text-[#2c2a26]">

@@ -20,8 +20,18 @@ const supabaseAdmin = createClient(
 );
 
 export async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+
+  // ✅ API 요청은 로그인 여부와 관계없이 통과
+  // /api/survey 같은 비로그인 설문 제출이 여기서 막히면 안 됨
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
   let res = NextResponse.next({
-    request: { headers: req.headers },
+    request: {
+      headers: req.headers,
+    },
   });
 
   const supabase = createServerClient(
@@ -29,36 +39,48 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return req.cookies.getAll(); },
+        getAll() {
+          return req.cookies.getAll();
+        },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
-          res = NextResponse.next({ request: { headers: req.headers } });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            res.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value }) => {
+            req.cookies.set(name, value);
+          });
+
+          res = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          });
+
+          cookiesToSet.forEach(({ name, value, options }) => {
+            res.cookies.set(name, value, options);
+          });
         },
       },
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const isPublic = PUBLIC_PATHS.some((path) =>
-    req.nextUrl.pathname === path || req.nextUrl.pathname.startsWith(path + "/")
+  const isPublic = PUBLIC_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(path + "/")
   );
 
-  // 비로그인 + 비공개 경로 → 로그인으로
+  // ✅ 비로그인 + 비공개 경로 → 로그인 페이지
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // 로그인 상태 + 로그인 페이지 → 홈으로
-  if (user && req.nextUrl.pathname.startsWith("/login")) {
+  // ✅ 로그인 상태 + 로그인 페이지 접근 → 홈으로
+  if (user && pathname.startsWith("/login")) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // 관리자 페이지 접근 시 권한 체크
-  if (user && req.nextUrl.pathname.startsWith("/admin")) {
+  // ✅ 관리자 페이지 권한 체크
+  if (user && pathname.startsWith("/admin")) {
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("is_admin")
@@ -70,12 +92,12 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // 로그인 상태 + 온보딩 미완료 → 온보딩으로
+  // ✅ 온보딩 미완료 유저 처리
   if (
     user &&
-    !req.nextUrl.pathname.startsWith("/onboarding") &&
-    !req.nextUrl.pathname.startsWith("/auth") &&
-    !req.nextUrl.pathname.startsWith("/admin")
+    !pathname.startsWith("/onboarding") &&
+    !pathname.startsWith("/auth") &&
+    !pathname.startsWith("/admin")
   ) {
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -92,5 +114,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+  ],
 };

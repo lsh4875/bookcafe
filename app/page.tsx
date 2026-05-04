@@ -2,19 +2,6 @@
 import Link from "next/link";
 import { createAdminSupabaseClient } from "@/lib/supabase-server";
 
-// ────────────────────────────────────────────────────────────
-// 데이터 (하드코딩 유지 — 팝업/설문은 추후 DB 연동)
-// ────────────────────────────────────────────────────────────
-
-const POPUP = {
-  month: "4월 · 부천",
-  title: "4월의 조용한 독서 팝업",
-  location: "부천 공유공간",
-  capacity: "8명 (소규모)",
-  time: "오후 2시 ~ 5시",
-  price: "추후 공개",
-};
-
 const SURVEY_QUESTIONS = [
   "어떤 장르를 좋아하나요?",
   "북카페에서 가장 기대하는 건?",
@@ -22,10 +9,6 @@ const SURVEY_QUESTIONS = [
   "적정 이용 가격은 얼마인가요?",
   "어느 지역이면 방문하기 좋나요?",
 ];
-
-// ────────────────────────────────────────────────────────────
-// 섹션 컴포넌트
-// ────────────────────────────────────────────────────────────
 
 function Hero() {
   return (
@@ -63,13 +46,10 @@ async function CurationSection() {
 
   return (
     <section className="px-5 py-10 max-w-2xl mx-auto">
-      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">
-        curation
-      </p>
+      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">curation</p>
       <h2 className="text-xl font-serif font-light text-[#2c2a26] mb-6 leading-snug">
         오늘의 책 큐레이션
       </h2>
-
       <ul className="flex flex-col gap-2.5 mb-6">
         {(curations ?? []).map((item, i) => (
           <li key={item.id}>
@@ -81,15 +61,12 @@ async function CurationSection() {
               <span className="font-serif text-2xl font-light text-[#c9b99a] w-7 shrink-0">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="text-sm text-[#4a4540] leading-relaxed">
-                {item.title}
-              </span>
+              <span className="text-sm text-[#4a4540] leading-relaxed">{item.title}</span>
               <span className="ml-auto text-[#c9b99a] text-sm">→</span>
             </Link>
           </li>
         ))}
       </ul>
-
       <Link
         href="/curation"
         className="text-sm text-[#7a6e60] border-b border-[#c5b9aa] hover:text-[#2c2a26] transition-colors"
@@ -100,29 +77,37 @@ async function CurationSection() {
   );
 }
 
-function PopupSection() {
+async function PopupSection() {
+  const supabase = createAdminSupabaseClient();
+  const { data: popup } = await supabase
+    .from("popups")
+    .select("*")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!popup) return null;
+
   return (
     <section className="px-5 py-10 max-w-2xl mx-auto border-t border-[#e0d9cf]">
-      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">
-        popup
-      </p>
+      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">popup</p>
       <h2 className="text-xl font-serif font-light text-[#2c2a26] mb-6 leading-snug">
         팝업 북카페 예약
       </h2>
-
       <div className="bg-[#2c2a26] text-[#f0ebe3] rounded-2xl p-6">
         <span className="inline-block text-[10px] tracking-wider bg-white/10 text-[#c9b99a] border border-[#c9b99a]/30 px-3 py-1 rounded-full mb-3">
-          {POPUP.month}
+          {popup.month}
         </span>
         <h3 className="font-serif text-lg font-normal leading-snug mb-5 text-[#f0ebe3]">
-          {POPUP.title}
+          {popup.title}
         </h3>
         <dl className="grid grid-cols-2 gap-y-3 gap-x-4 mb-6 text-sm">
           {[
-            ["장소", POPUP.location],
-            ["인원", POPUP.capacity],
-            ["시간", POPUP.time],
-            ["가격", POPUP.price],
+            ["장소", popup.location],
+            ["인원", popup.capacity],
+            ["시간", popup.time],
+            ["가격", popup.price],
           ].map(([label, value]) => (
             <div key={label} className="flex flex-col gap-0.5">
               <dt className="text-[11px] text-[#9a8c7a]">{label}</dt>
@@ -145,13 +130,10 @@ function PopupSection() {
 function SurveySection() {
   return (
     <section className="px-5 py-10 max-w-2xl mx-auto border-t border-[#e0d9cf]">
-      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">
-        survey
-      </p>
+      <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a8c7a] mb-1">survey</p>
       <h2 className="text-xl font-serif font-light text-[#2c2a26] mb-6 leading-snug">
         취향 설문에 참여해주세요
       </h2>
-
       <div className="bg-white border border-[#e0d9cf] rounded-2xl p-6">
         <span className="inline-block text-[10px] tracking-wider bg-[#f5f0ea] text-[#9a8c7a] border border-[#e0d9cf] px-3 py-1 rounded-full mb-3">
           5분 설문 · 익명
@@ -162,10 +144,7 @@ function SurveySection() {
         </p>
         <ul className="flex flex-col gap-1.5 mb-6">
           {SURVEY_QUESTIONS.map((q, i) => (
-            <li
-              key={i}
-              className="flex items-start gap-2 text-[13px] text-[#9a8c7a] leading-relaxed"
-            >
+            <li key={i} className="flex items-start gap-2 text-[13px] text-[#9a8c7a] leading-relaxed">
               <span className="text-[#c9b99a] text-base leading-tight shrink-0">·</span>
               {q}
             </li>
@@ -191,10 +170,6 @@ function Footer() {
     </footer>
   );
 }
-
-// ────────────────────────────────────────────────────────────
-// 메인 페이지
-// ────────────────────────────────────────────────────────────
 
 export default async function Home() {
   return (

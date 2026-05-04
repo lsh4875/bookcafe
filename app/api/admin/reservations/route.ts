@@ -3,7 +3,6 @@ import { createAdminSupabaseClient } from "@/lib/supabase-server";
 
 const supabase = createAdminSupabaseClient();
 
-// 전체 예약 목록
 export async function GET() {
   const { data, error } = await supabase
     .from("reservations")
@@ -17,7 +16,6 @@ export async function GET() {
   return NextResponse.json({ data });
 }
 
-// 예약 상태 변경
 export async function PATCH(req: NextRequest) {
   try {
     const { id, status } = await req.json();
@@ -39,6 +37,30 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("[admin reservations PATCH error]", error);
+    return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ error: "id가 누락됐습니다." }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("reservations")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[admin reservations DELETE error]", error);
     return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
   }
 }

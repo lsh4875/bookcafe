@@ -60,6 +60,7 @@ export default function MyPage() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -146,6 +147,26 @@ export default function MyPage() {
       alert("네트워크 오류가 발생했습니다.");
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!confirm("정말 탈퇴하시겠습니까?\n탈퇴 시 모든 데이터가 삭제되며 복구가 불가능합니다.")) return;
+    if (!confirm("마지막으로 한 번 더 확인합니다. 탈퇴하시겠습니까?")) return;
+
+    setWithdrawing(true);
+    try {
+      const { error } = await supabase.rpc("delete_user");
+      if (error) {
+        alert("탈퇴 처리 중 오류가 발생했습니다.");
+        setWithdrawing(false);
+        return;
+      }
+      await supabase.auth.signOut();
+      window.location.replace("/");
+    } catch {
+      alert("네트워크 오류가 발생했습니다.");
+      setWithdrawing(false);
     }
   };
 
@@ -328,6 +349,15 @@ export default function MyPage() {
           className="w-full py-3 border border-[#e0d9cf] rounded-xl text-sm text-[#8a8480] hover:text-red-400 hover:border-red-300 transition-colors"
         >
           로그아웃
+        </button>
+
+        {/* 회원탈퇴 */}
+        <button
+          onClick={handleWithdraw}
+          disabled={withdrawing}
+          className="w-full py-3 text-xs text-[#c0bbb4] hover:text-red-400 transition-colors disabled:opacity-60"
+        >
+          {withdrawing ? "탈퇴 처리 중..." : "회원탈퇴"}
         </button>
 
       </div>
