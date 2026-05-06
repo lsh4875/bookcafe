@@ -27,18 +27,9 @@ type Reservation = {
 };
 
 const STATUS_LABEL: Record<string, { label: string; style: string }> = {
-  pending: {
-    label: "예약대기",
-    style: "text-[#c9b99a] border-[#e8e2d9]",
-  },
-  confirmed: {
-    label: "예약확정",
-    style: "text-green-600 border-green-200",
-  },
-  cancelled: {
-    label: "취소됨",
-    style: "text-[#b0aba4] border-[#e0d9cf] line-through",
-  },
+  pending: { label: "예약대기", style: "text-[#c9b99a] border-[#e8e2d9]" },
+  confirmed: { label: "예약확정", style: "text-green-600 border-green-200" },
+  cancelled: { label: "취소됨", style: "text-[#b0aba4] border-[#e0d9cf] line-through" },
 };
 
 export default function MyPage() {
@@ -62,12 +53,29 @@ export default function MyPage() {
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
 
+  // 비밀번호 변경
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState("");
+  const [passwordMsgType, setPasswordMsgType] = useState<"success" | "error">("error");
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
+
   useEffect(() => {
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
       const userId = session.user.id;
+
+      // OAuth 유저 체크 (구글 로그인은 비밀번호 변경 불가)
+      const provider = session.user.app_metadata?.provider;
+      if (provider && provider !== "email") {
+        setIsOAuthUser(true);
+      }
 
       const { data: profileData } = await supabase
         .from("profiles")
@@ -125,9 +133,45 @@ export default function MyPage() {
     setSaving(false);
   };
 
+  const handlePasswordChange = async () => {
+    if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordMsg("모든 항목을 입력해주세요.");
+      setPasswordMsgType("error");
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordMsg("비밀번호는 6자 이상이어야 해요.");
+      setPasswordMsgType("error");
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMsg("비밀번호가 일치하지 않아요.");
+      setPasswordMsgType("error");
+      return;
+    }
+
+    setPasswordSaving(true);
+    setPasswordMsg("");
+
+    const { error } = await supabase.auth.updateUser({
+      password: passwordForm.newPassword,
+    });
+
+    if (error) {
+      setPasswordMsg("비밀번호 변경에 실패했습니다.");
+      setPasswordMsgType("error");
+    } else {
+      setPasswordMsg("비밀번호가 변경됐습니다!");
+      setPasswordMsgType("success");
+      setPasswordForm({ newPassword: "", confirmPassword: "" });
+      setShowPasswordForm(false);
+      setTimeout(() => setPasswordMsg(""), 3000);
+    }
+    setPasswordSaving(false);
+  };
+
   const handleCancel = async (id: number) => {
     if (!confirm("예약을 취소하시겠습니까?")) return;
-
     setCancellingId(id);
     try {
       const res = await fetch("/api/reservation", {
@@ -135,7 +179,6 @@ export default function MyPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: "cancelled" }),
       });
-
       if (res.ok) {
         setReservations((prev) =>
           prev.map((r) => r.id === id ? { ...r, status: "cancelled" } : r)
@@ -233,9 +276,7 @@ export default function MyPage() {
                 </div>
               ))}
 
-              {saveMsg && (
-                <p className="text-xs text-center text-green-600">{saveMsg}</p>
-              )}
+              {saveMsg && <p className="text-xs text-center text-green-600">{saveMsg}</p>}
 
               <div className="flex gap-2 pt-1">
                 <button
@@ -282,6 +323,74 @@ export default function MyPage() {
           )}
         </div>
 
+        {/* 비밀번호 변경 */}
+        {!isOAuthUser && (
+          <div className="bg-white border border-[#e8e2d9] rounded-2xl shadow-sm p-7 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium text-[#2c2a26] tracking-wide">비밀번호 변경</h2>
+              {!showPasswordForm && (
+                <button
+                  onClick={() => setShowPasswordForm(true)}
+                  className="text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors border border-[#e0d9cf] px-3 py-1.5 rounded-lg"
+                >
+                  변경
+                </button>
+              )}
+            </div>
+
+            {showPasswordForm ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#8a8480]">새 비밀번호</label>
+                  <input
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => { setPasswordForm((p) => ({ ...p, newPassword: e.target.value })); setPasswordMsg(""); }}
+                    placeholder="6자 이상"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#8a8480]">새 비밀번호 확인</label>
+                  <input
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => { setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value })); setPasswordMsg(""); }}
+                    placeholder="비밀번호 재입력"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
+                  />
+                </div>
+
+                {passwordMsg && (
+                  <p className={`text-xs text-center ${passwordMsgType === "success" ? "text-green-600" : "text-red-500"}`}>
+                    {passwordMsg}
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowPasswordForm(false); setPasswordMsg(""); setPasswordForm({ newPassword: "", confirmPassword: "" }); }}
+                    className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handlePasswordChange}
+                    disabled={passwordSaving}
+                    className="flex-1 py-2.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-xs hover:bg-[#3d3a34] transition-colors disabled:opacity-60"
+                  >
+                    {passwordSaving ? "변경 중..." : "변경"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-[#8a8480]">
+                비밀번호를 주기적으로 변경하면 계정을 안전하게 보호할 수 있어요.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* 예약 내역 */}
         <div className="bg-white border border-[#e8e2d9] rounded-2xl shadow-sm p-7 space-y-4">
           <h2 className="text-sm font-medium text-[#2c2a26] tracking-wide">내 예약 내역</h2>
@@ -314,19 +423,16 @@ export default function MyPage() {
                         {statusInfo.label}
                       </span>
                     </div>
-
                     <div className="space-y-1">
                       <p className="text-xs text-[#8a8480]">📍 {res.place}</p>
                       <p className="text-xs text-[#8a8480]">🕐 {res.time_slot}</p>
                       <p className="text-xs text-[#8a8480]">👥 {res.headcount}명</p>
                     </div>
-
                     {res.submitted_at && (
                       <p className="text-xs text-[#b0aba4]">
                         신청일 {new Date(res.submitted_at).toLocaleDateString("ko-KR")}
                       </p>
                     )}
-
                     {!isCancelled && (
                       <button
                         onClick={() => handleCancel(res.id)}
