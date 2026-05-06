@@ -104,6 +104,13 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const handleEnterKey = (e: React.KeyboardEvent) => {
+    if (e.key !== "Enter") return;
+    if (mode === "login") handleLogin();
+    else if (mode === "signup") handleSignup();
+    else if (mode === "verify") handleVerify();
+  };
+
   return (
     <main className="min-h-screen bg-[#f8f5f0] flex items-center justify-center px-4">
       <div className="max-w-sm w-full">
@@ -130,6 +137,7 @@ export default function LoginPage() {
                 type="text"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
+                onKeyDown={handleEnterKey}
                 placeholder="인증 코드 8자리"
                 maxLength={8}
                 className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] text-sm text-[#2c2a26]
@@ -209,6 +217,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={handleEnterKey}
                   placeholder="이메일"
                   className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] text-sm text-[#2c2a26]
                     bg-[#f8f5f0] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a]
@@ -218,6 +227,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={handleEnterKey}
                   placeholder="비밀번호"
                   className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] text-sm text-[#2c2a26]
                     bg-[#f8f5f0] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a]
@@ -228,6 +238,7 @@ export default function LoginPage() {
                     type="password"
                     value={passwordConfirm}
                     onChange={(e) => setPasswordConfirm(e.target.value)}
+                    onKeyDown={handleEnterKey}
                     placeholder="비밀번호 확인"
                     className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] text-sm text-[#2c2a26]
                       bg-[#f8f5f0] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a]
