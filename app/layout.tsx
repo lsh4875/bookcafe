@@ -16,6 +16,7 @@ const notoSans = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://bookcafe-taupe.vercel.app"),
   title: "일오책방",
   description: "혼자여도 괜찮은 시간 — 조용히 책 읽고 쉬어가는 팝업 북카페",
   keywords: ["북카페", "팝업", "독서", "일오책방", "부천"],
