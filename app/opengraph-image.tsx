@@ -92,7 +92,7 @@ export default function Image() {
             letterSpacing: "0.05em",
           }}
         >
-          bookcafe-taupe.vercel.app
+          www.ilobookcafe.com
         </div>
       </div>
     ),
