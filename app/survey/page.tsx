@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import toast from "react-hot-toast";
 
 const GENRES = ["소설", "에세이", "시/詩", "인문학", "만화/그래픽노블", "기타"];
 
@@ -136,7 +137,7 @@ export default function SurveyPage() {
 
   const handleResubmit = async () => {
     if (!userId) {
-      alert("로그인 정보가 없습니다.");
+      toast.error("로그인 정보가 없습니다.");
       return;
     }
 
@@ -155,14 +156,14 @@ export default function SurveyPage() {
       const data = await safeParseJson(res);
 
       if (!res.ok) {
-        alert(data.message || "오류가 발생했습니다. 다시 시도해주세요.");
+        toast.error(data.message || "오류가 발생했습니다. 다시 시도해주세요.");
         return;
       }
 
       setAlreadySubmitted(false);
     } catch (error) {
       console.error("다시 설문하기 오류:", error);
-      alert("네트워크 오류가 발생했습니다.");
+      toast.error("네트워크 오류가 발생했습니다.");
     }
   };
 
@@ -171,6 +172,7 @@ export default function SurveyPage() {
 
     if (Object.keys(e).length > 0) {
       setErrors(e);
+      toast.error("입력 항목을 확인해주세요.");
       return;
     }
 
@@ -192,8 +194,6 @@ export default function SurveyPage() {
         submitterEmail: !isLoggedIn ? guestInfo.email.trim() : null,
       };
 
-      console.log("survey payload:", payload);
-
       const res = await fetch("/api/survey", {
         method: "POST",
         headers: {
@@ -202,18 +202,15 @@ export default function SurveyPage() {
         body: JSON.stringify(payload),
       });
 
-      console.log("response status:", res.status);
-
       const data = await safeParseJson(res);
-      console.log("response data:", data);
 
       if (!res.ok) {
         if (data.code === "DUPLICATE_CONTACT") {
-          alert("이미 동일한 이메일 또는 전화번호로 설문에 참여하셨습니다.");
+          toast.error("이미 동일한 이메일 또는 전화번호로 설문에 참여하셨습니다.");
         } else if (data.code === "DUPLICATE_USER") {
           setAlreadySubmitted(true);
         } else {
-          alert(data.message || "오류가 발생했습니다. 다시 시도해주세요.");
+          toast.error(data.message || "오류가 발생했습니다. 다시 시도해주세요.");
         }
 
         setSubmitting(false);
@@ -223,7 +220,7 @@ export default function SurveyPage() {
       router.push("/survey/done");
     } catch (error) {
       console.error("fetch error:", error);
-      alert("네트워크 오류가 발생했습니다.");
+      toast.error("네트워크 오류가 발생했습니다.");
       setSubmitting(false);
     }
   };
@@ -356,14 +353,12 @@ export default function SurveyPage() {
           </div>
         )}
 
+        {/* 1. 장르 */}
         <div className="mb-8">
           <p className="text-sm font-medium text-[#2c2a26] mb-3">
             1. 어떤 장르를 좋아하나요?{" "}
-            <span className="text-[#9a8c7a] font-normal ml-1">
-              (복수선택)
-            </span>
+            <span className="text-[#9a8c7a] font-normal ml-1">(복수선택)</span>
           </p>
-
           <div className="flex flex-wrap gap-2">
             {GENRES.map((g) => (
               <button
@@ -382,15 +377,14 @@ export default function SurveyPage() {
           </div>
         </div>
 
+        {/* 2. 기대 */}
         <div className="mb-8">
           <p className="text-sm font-medium text-[#2c2a26] mb-3">
             2. 북카페에서 가장 기대하는 건?
           </p>
-
           {errors.expectation && (
             <p className="text-xs text-red-400 mb-2">{errors.expectation}</p>
           )}
-
           <div className="flex flex-col gap-2">
             {EXPECTATIONS.map((item) => (
               <button
@@ -412,15 +406,14 @@ export default function SurveyPage() {
           </div>
         </div>
 
+        {/* 3. 참여 의향 */}
         <div className="mb-8">
           <p className="text-sm font-medium text-[#2c2a26] mb-3">
             3. 팝업 북카페 참여 의향이 있나요?
           </p>
-
           {errors.intention && (
             <p className="text-xs text-red-400 mb-2">{errors.intention}</p>
           )}
-
           <div className="flex flex-col gap-2">
             {INTENTIONS.map((item) => (
               <button
@@ -442,15 +435,14 @@ export default function SurveyPage() {
           </div>
         </div>
 
+        {/* 4. 가격 */}
         <div className="mb-8">
           <p className="text-sm font-medium text-[#2c2a26] mb-3">
             4. 적정 이용 가격은?
           </p>
-
           {errors.price && (
             <p className="text-xs text-red-400 mb-2">{errors.price}</p>
           )}
-
           <div className="flex flex-col gap-2">
             {PRICES.map((item) => (
               <button
@@ -472,11 +464,11 @@ export default function SurveyPage() {
           </div>
         </div>
 
+        {/* 5. 지역 */}
         <div className="mb-10">
           <p className="text-sm font-medium text-[#2c2a26] mb-3">
             5. 어느 지역이면 방문하기 좋나요?
           </p>
-
           <input
             type="text"
             placeholder="예: 부천, 홍대, 건대 등"
@@ -487,7 +479,6 @@ export default function SurveyPage() {
             }}
             className="w-full bg-white border border-[#e0d9cf] rounded-xl px-4 py-3 text-sm text-[#2c2a26] placeholder-[#c5b9aa] focus:outline-none focus:border-[#2c2a26]"
           />
-
           {errors.region && (
             <p className="text-xs text-red-400 mt-1">{errors.region}</p>
           )}

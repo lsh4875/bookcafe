@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import toast from "react-hot-toast";
 
 type Popup = {
   id: string;
@@ -37,7 +38,6 @@ export default function ReservationPage() {
     const loadData = async () => {
       const supabase = createClient();
 
-      // 팝업 정보 불러오기
       const { data: popupData } = await supabase
         .from("popups")
         .select("*")
@@ -48,7 +48,6 @@ export default function ReservationPage() {
 
       setPopup(popupData);
 
-      // 유저 정보 불러오기
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsLoggedIn(true);
@@ -101,6 +100,7 @@ export default function ReservationPage() {
     const e = validate();
     if (Object.keys(e).length > 0) {
       setErrors(e);
+      toast.error("입력 항목을 확인해주세요.");
       return;
     }
     setLoading(true);
@@ -119,10 +119,10 @@ export default function ReservationPage() {
       if (res.ok) {
         router.push("/reservation/done");
       } else {
-        alert("예약 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        toast.error("예약 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
       }
     } catch {
-      alert("네트워크 오류가 발생했습니다.");
+      toast.error("네트워크 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }

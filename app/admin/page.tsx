@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import toast from "react-hot-toast";
 
 type Reservation = {
   id: number;
@@ -166,6 +167,9 @@ export default function AdminPage() {
     });
     if (res.ok) {
       setReservations((prev) => prev.map((r) => r.id === id ? { ...r, status } : r));
+      toast.success("상태가 변경됐습니다.");
+    } else {
+      toast.error("상태 변경에 실패했습니다.");
     }
     setUpdatingId(null);
   };
@@ -179,8 +183,9 @@ export default function AdminPage() {
     });
     if (res.ok) {
       setReservations((prev) => prev.filter((r) => r.id !== id));
+      toast.success("예약이 삭제됐습니다.");
     } else {
-      alert("삭제에 실패했습니다.");
+      toast.error("삭제에 실패했습니다.");
     }
   };
 
@@ -193,8 +198,9 @@ export default function AdminPage() {
     });
     if (res.ok) {
       setMembers((prev) => prev.filter((m) => m.id !== id));
+      toast.success("회원이 탈퇴 처리됐습니다.");
     } else {
-      alert("탈퇴 처리에 실패했습니다.");
+      toast.error("탈퇴 처리에 실패했습니다.");
     }
   };
 
@@ -207,8 +213,9 @@ export default function AdminPage() {
     });
     if (res.ok) {
       setSurveys((prev) => prev.filter((s) => s.id !== id));
+      toast.success("설문이 삭제됐습니다.");
     } else {
-      alert("삭제에 실패했습니다.");
+      toast.error("삭제에 실패했습니다.");
     }
   };
 
@@ -248,8 +255,9 @@ export default function AdminPage() {
       await fetchAll();
       setShowCurationForm(false);
       setEditingCuration(null);
+      toast.success("큐레이션이 저장됐습니다.");
     } else {
-      alert("저장에 실패했습니다.");
+      toast.error("저장에 실패했습니다.");
     }
     setSavingCuration(false);
   };
@@ -266,8 +274,9 @@ export default function AdminPage() {
 
     if (res.ok) {
       await fetchAll();
+      toast.success(permanent ? "삭제됐습니다." : "비활성화됐습니다.");
     } else {
-      alert("처리에 실패했습니다.");
+      toast.error("처리에 실패했습니다.");
     }
   };
 
@@ -277,7 +286,10 @@ export default function AdminPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, is_active: true }),
     });
-    if (res.ok) await fetchAll();
+    if (res.ok) {
+      await fetchAll();
+      toast.success("활성화됐습니다.");
+    }
   };
 
   const handlePopupEdit = (popup: Popup) => {
@@ -317,8 +329,9 @@ export default function AdminPage() {
       await fetchAll();
       setShowPopupForm(false);
       setEditingPopup(null);
+      toast.success("팝업이 저장됐습니다.");
     } else {
-      alert("저장에 실패했습니다.");
+      toast.error("저장에 실패했습니다.");
     }
     setSavingPopup(false);
   };
@@ -434,7 +447,6 @@ export default function AdminPage() {
         {/* 대시보드 */}
         {tab === "dashboard" && (
           <div className="space-y-6">
-            {/* 요약 카드 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: "전체 예약", value: reservations.length, color: "text-[#2c2a26]" },
@@ -462,16 +474,10 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* 최근 예약 */}
             <div className="bg-white border border-[#e8e2d9] rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-[#2c2a26]">최근 예약</h3>
-                <button
-                  onClick={() => setTab("reservations")}
-                  className="text-xs text-[#c9b99a] hover:text-[#2c2a26] transition-colors"
-                >
-                  전체 보기 →
-                </button>
+                <button onClick={() => setTab("reservations")} className="text-xs text-[#c9b99a] hover:text-[#2c2a26] transition-colors">전체 보기 →</button>
               </div>
               {reservations.slice(0, 5).map((res) => {
                 const statusInfo = STATUS_LABEL[res.status] ?? STATUS_LABEL.pending;
@@ -481,27 +487,17 @@ export default function AdminPage() {
                       <p className="text-sm text-[#2c2a26]">{res.name}</p>
                       <p className="text-xs text-[#8a8480]">{res.time_slot} · {res.headcount}명</p>
                     </div>
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusInfo.style}`}>
-                      {statusInfo.label}
-                    </span>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusInfo.style}`}>{statusInfo.label}</span>
                   </div>
                 );
               })}
-              {reservations.length === 0 && (
-                <p className="text-sm text-[#8a8480] text-center py-4">예약 내역이 없습니다.</p>
-              )}
+              {reservations.length === 0 && <p className="text-sm text-[#8a8480] text-center py-4">예약 내역이 없습니다.</p>}
             </div>
 
-            {/* 최근 가입 회원 */}
             <div className="bg-white border border-[#e8e2d9] rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-[#2c2a26]">최근 가입 회원</h3>
-                <button
-                  onClick={() => setTab("members")}
-                  className="text-xs text-[#c9b99a] hover:text-[#2c2a26] transition-colors"
-                >
-                  전체 보기 →
-                </button>
+                <button onClick={() => setTab("members")} className="text-xs text-[#c9b99a] hover:text-[#2c2a26] transition-colors">전체 보기 →</button>
               </div>
               {members.slice(0, 5).map((member) => (
                 <div key={member.id} className="flex items-center justify-between py-2 border-b border-[#f0ece5] last:border-0">
@@ -509,16 +505,12 @@ export default function AdminPage() {
                     <p className="text-sm text-[#2c2a26]">{member.name || "이름 없음"}</p>
                     <p className="text-xs text-[#8a8480]">{member.email}</p>
                   </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                    member.is_onboarded ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"
-                  }`}>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${member.is_onboarded ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"}`}>
                     {member.is_onboarded ? "가입완료" : "미완료"}
                   </span>
                 </div>
               ))}
-              {members.length === 0 && (
-                <p className="text-sm text-[#8a8480] text-center py-4">회원이 없습니다.</p>
-              )}
+              {members.length === 0 && <p className="text-sm text-[#8a8480] text-center py-4">회원이 없습니다.</p>}
             </div>
           </div>
         )}
@@ -539,9 +531,7 @@ export default function AdminPage() {
                       <p className="text-sm font-medium text-[#2c2a26]">{res.name}</p>
                       <p className="text-xs text-[#8a8480] mt-0.5">{res.email} · {res.phone}</p>
                     </div>
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${statusInfo.style}`}>
-                      {statusInfo.label}
-                    </span>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${statusInfo.style}`}>{statusInfo.label}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-[#8a8480]">
                     <p>📅 {res.popup}</p>
@@ -550,9 +540,7 @@ export default function AdminPage() {
                     <p>👥 {res.headcount}명</p>
                     {res.note && <p className="col-span-2">📝 {res.note}</p>}
                   </div>
-                  <p className="text-xs text-[#b0aba4]">
-                    신청일 {new Date(res.submitted_at).toLocaleDateString("ko-KR")}
-                  </p>
+                  <p className="text-xs text-[#b0aba4]">신청일 {new Date(res.submitted_at).toLocaleDateString("ko-KR")}</p>
                   <div className="flex gap-2 pt-1">
                     {[
                       { status: "pending", label: "대기" },
@@ -598,15 +586,11 @@ export default function AdminPage() {
                   <div>
                     <p className="text-sm font-medium text-[#2c2a26]">
                       {member.name || "이름 없음"}
-                      {member.is_admin && (
-                        <span className="ml-2 text-xs bg-[#2c2a26] text-[#f8f5f0] px-2 py-0.5 rounded-full">관리자</span>
-                      )}
+                      {member.is_admin && <span className="ml-2 text-xs bg-[#2c2a26] text-[#f8f5f0] px-2 py-0.5 rounded-full">관리자</span>}
                     </p>
                     <p className="text-xs text-[#8a8480] mt-0.5">{member.email}</p>
                   </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${
-                    member.is_onboarded ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"
-                  }`}>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${member.is_onboarded ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"}`}>
                     {member.is_onboarded ? "가입완료" : "온보딩미완료"}
                   </span>
                 </div>
@@ -618,10 +602,7 @@ export default function AdminPage() {
                 </div>
                 {!member.is_admin && (
                   <div className="flex justify-end pt-1">
-                    <button
-                      onClick={() => handleMemberDelete(member.id)}
-                      className="px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors"
-                    >
+                    <button onClick={() => handleMemberDelete(member.id)} className="px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors">
                       탈퇴
                     </button>
                   </div>
@@ -657,10 +638,7 @@ export default function AdminPage() {
                               <span className="text-xs text-[#8a8480]">{count}명</span>
                             </div>
                             <div className="h-1.5 bg-[#f0ece5] rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-[#c9b99a] rounded-full"
-                                style={{ width: `${(count / surveys.length) * 100}%` }}
-                              />
+                              <div className="h-full bg-[#c9b99a] rounded-full" style={{ width: `${(count / surveys.length) * 100}%` }} />
                             </div>
                           </div>
                         ))}
@@ -684,12 +662,7 @@ export default function AdminPage() {
                           {new Date(survey.submitted_at).toLocaleDateString("ko-KR")}
                           {survey.user_id ? " · 회원" : " · 비회원"}
                         </p>
-                        <button
-                          onClick={() => handleSurveyDelete(survey.id)}
-                          className="text-xs text-red-400 hover:text-red-600 transition-colors"
-                        >
-                          삭제
-                        </button>
+                        <button onClick={() => handleSurveyDelete(survey.id)} className="text-xs text-red-400 hover:text-red-600 transition-colors">삭제</button>
                       </div>
                     </div>
                   ))}
@@ -703,16 +676,12 @@ export default function AdminPage() {
         {tab === "curations" && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button onClick={handleCurationNew} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">
-                + 새 큐레이션
-              </button>
+              <button onClick={handleCurationNew} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">+ 새 큐레이션</button>
             </div>
 
             {showCurationForm && (
               <div className="bg-white border border-[#e8e2d9] rounded-2xl p-6 space-y-5">
-                <h3 className="text-sm font-medium text-[#2c2a26]">
-                  {editingCuration ? "큐레이션 수정" : "새 큐레이션 추가"}
-                </h3>
+                <h3 className="text-sm font-medium text-[#2c2a26]">{editingCuration ? "큐레이션 수정" : "새 큐레이션 추가"}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2 space-y-1.5">
                     <label className="text-xs text-[#8a8480]">제목</label>
@@ -751,30 +720,12 @@ export default function AdminPage() {
                         )}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="col-span-2 space-y-1">
-                          <label className="text-xs text-[#8a8480]">제목</label>
-                          <input value={book.title} onChange={(e) => updateBook(i, "title", e.target.value)} placeholder="책 제목" className={inputCls} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs text-[#8a8480]">저자</label>
-                          <input value={book.author} onChange={(e) => updateBook(i, "author", e.target.value)} placeholder="저자" className={inputCls} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs text-[#8a8480]">출판사</label>
-                          <input value={book.publisher} onChange={(e) => updateBook(i, "publisher", e.target.value)} placeholder="출판사" className={inputCls} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs text-[#8a8480]">출판연도</label>
-                          <input type="number" value={book.year} onChange={(e) => updateBook(i, "year", Number(e.target.value))} placeholder="2024" className={inputCls} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs text-[#8a8480]">태그</label>
-                          <input value={book.tag || ""} onChange={(e) => updateBook(i, "tag", e.target.value)} placeholder="태그 (선택)" className={inputCls} />
-                        </div>
-                        <div className="col-span-2 space-y-1">
-                          <label className="text-xs text-[#8a8480]">설명</label>
-                          <textarea value={book.description} onChange={(e) => updateBook(i, "description", e.target.value)} placeholder="책 설명" rows={2} className={`${inputCls} resize-none`} />
-                        </div>
+                        <div className="col-span-2 space-y-1"><label className="text-xs text-[#8a8480]">제목</label><input value={book.title} onChange={(e) => updateBook(i, "title", e.target.value)} placeholder="책 제목" className={inputCls} /></div>
+                        <div className="space-y-1"><label className="text-xs text-[#8a8480]">저자</label><input value={book.author} onChange={(e) => updateBook(i, "author", e.target.value)} placeholder="저자" className={inputCls} /></div>
+                        <div className="space-y-1"><label className="text-xs text-[#8a8480]">출판사</label><input value={book.publisher} onChange={(e) => updateBook(i, "publisher", e.target.value)} placeholder="출판사" className={inputCls} /></div>
+                        <div className="space-y-1"><label className="text-xs text-[#8a8480]">출판연도</label><input type="number" value={book.year} onChange={(e) => updateBook(i, "year", Number(e.target.value))} placeholder="2024" className={inputCls} /></div>
+                        <div className="space-y-1"><label className="text-xs text-[#8a8480]">태그</label><input value={book.tag || ""} onChange={(e) => updateBook(i, "tag", e.target.value)} placeholder="태그 (선택)" className={inputCls} /></div>
+                        <div className="col-span-2 space-y-1"><label className="text-xs text-[#8a8480]">설명</label><textarea value={book.description} onChange={(e) => updateBook(i, "description", e.target.value)} placeholder="책 설명" rows={2} className={`${inputCls} resize-none`} /></div>
                       </div>
                     </div>
                   ))}
@@ -789,9 +740,7 @@ export default function AdminPage() {
             )}
 
             {curations.length === 0 ? (
-              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center">
-                <p className="text-sm text-[#8a8480]">큐레이션이 없습니다.</p>
-              </div>
+              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center"><p className="text-sm text-[#8a8480]">큐레이션이 없습니다.</p></div>
             ) : curations.map((curation) => (
               <div key={curation.id} className={`bg-white border border-[#e8e2d9] rounded-2xl p-5 space-y-3 ${!curation.is_active ? "opacity-50" : ""}`}>
                 <div className="flex items-start justify-between gap-3">
@@ -822,76 +771,35 @@ export default function AdminPage() {
         {tab === "popups" && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button onClick={handlePopupNew} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">
-                + 새 팝업
-              </button>
+              <button onClick={handlePopupNew} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">+ 새 팝업</button>
             </div>
 
             {showPopupForm && (
               <div className="bg-white border border-[#e8e2d9] rounded-2xl p-6 space-y-4">
-                <h3 className="text-sm font-medium text-[#2c2a26]">
-                  {editingPopup ? "팝업 수정" : "새 팝업 추가"}
-                </h3>
+                <h3 className="text-sm font-medium text-[#2c2a26]">{editingPopup ? "팝업 수정" : "새 팝업 추가"}</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">월 · 지역</label>
-                    <input value={popupForm.month} onChange={(e) => setPopupForm((p) => ({ ...p, month: e.target.value }))} placeholder="5월 · 부천" className={inputCls} />
-                  </div>
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">제목</label>
-                    <input value={popupForm.title} onChange={(e) => setPopupForm((p) => ({ ...p, title: e.target.value }))} placeholder="5월의 조용한 독서 팝업" className={inputCls} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">장소</label>
-                    <input value={popupForm.location} onChange={(e) => setPopupForm((p) => ({ ...p, location: e.target.value }))} placeholder="부천 공유공간" className={inputCls} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">인원</label>
-                    <input value={popupForm.capacity} onChange={(e) => setPopupForm((p) => ({ ...p, capacity: e.target.value }))} placeholder="8명 (소규모)" className={inputCls} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">운영 시간</label>
-                    <input value={popupForm.time} onChange={(e) => setPopupForm((p) => ({ ...p, time: e.target.value }))} placeholder="오후 1시 ~ 5시" className={inputCls} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">가격</label>
-                    <input value={popupForm.price} onChange={(e) => setPopupForm((p) => ({ ...p, price: e.target.value }))} placeholder="추후 공개" className={inputCls} />
-                  </div>
+                  <div className="col-span-2 space-y-1.5"><label className="text-xs text-[#8a8480]">월 · 지역</label><input value={popupForm.month} onChange={(e) => setPopupForm((p) => ({ ...p, month: e.target.value }))} placeholder="5월 · 부천" className={inputCls} /></div>
+                  <div className="col-span-2 space-y-1.5"><label className="text-xs text-[#8a8480]">제목</label><input value={popupForm.title} onChange={(e) => setPopupForm((p) => ({ ...p, title: e.target.value }))} placeholder="5월의 조용한 독서 팝업" className={inputCls} /></div>
+                  <div className="space-y-1.5"><label className="text-xs text-[#8a8480]">장소</label><input value={popupForm.location} onChange={(e) => setPopupForm((p) => ({ ...p, location: e.target.value }))} placeholder="부천 공유공간" className={inputCls} /></div>
+                  <div className="space-y-1.5"><label className="text-xs text-[#8a8480]">인원</label><input value={popupForm.capacity} onChange={(e) => setPopupForm((p) => ({ ...p, capacity: e.target.value }))} placeholder="8명 (소규모)" className={inputCls} /></div>
+                  <div className="space-y-1.5"><label className="text-xs text-[#8a8480]">운영 시간</label><input value={popupForm.time} onChange={(e) => setPopupForm((p) => ({ ...p, time: e.target.value }))} placeholder="오후 1시 ~ 5시" className={inputCls} /></div>
+                  <div className="space-y-1.5"><label className="text-xs text-[#8a8480]">가격</label><input value={popupForm.price} onChange={(e) => setPopupForm((p) => ({ ...p, price: e.target.value }))} placeholder="추후 공개" className={inputCls} /></div>
                 </div>
-
-                {/* 시간대 관리 */}
                 <div className="space-y-3">
                   <label className="text-xs font-medium text-[#8a8480]">예약 시간대</label>
                   <div className="flex flex-wrap gap-2">
                     {(popupForm.time_slots ?? []).map((slot, i) => (
                       <div key={i} className="flex items-center gap-1 bg-[#f0ece5] px-3 py-1.5 rounded-lg">
                         <span className="text-xs text-[#2c2a26]">{slot}</span>
-                        <button
-                          onClick={() => removeTimeSlot(i)}
-                          className="text-[#8a8480] hover:text-red-400 transition-colors ml-1"
-                        >
-                          ×
-                        </button>
+                        <button onClick={() => removeTimeSlot(i)} className="text-[#8a8480] hover:text-red-400 transition-colors ml-1">×</button>
                       </div>
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <input
-                      value={newTimeSlot}
-                      onChange={(e) => setNewTimeSlot(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") addTimeSlot(); }}
-                      placeholder="예: 13:00 ~ 13:30"
-                      className={`${inputCls} flex-1`}
-                    />
-                    <button
-                      onClick={addTimeSlot}
-                      className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-lg text-xs hover:bg-[#3d3a34] transition-colors whitespace-nowrap"
-                    >
-                      추가
-                    </button>
+                    <input value={newTimeSlot} onChange={(e) => setNewTimeSlot(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addTimeSlot(); }} placeholder="예: 13:00 ~ 13:30" className={`${inputCls} flex-1`} />
+                    <button onClick={addTimeSlot} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-lg text-xs hover:bg-[#3d3a34] transition-colors whitespace-nowrap">추가</button>
                   </div>
                 </div>
-
                 <div className="flex gap-2 pt-2">
                   <button onClick={() => { setShowPopupForm(false); setEditingPopup(null); }} className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-sm text-[#8a8480] hover:text-[#2c2a26] transition-colors">취소</button>
                   <button onClick={handlePopupSave} disabled={savingPopup} className="flex-1 py-2.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm hover:bg-[#3d3a34] transition-colors disabled:opacity-60">
@@ -902,9 +810,7 @@ export default function AdminPage() {
             )}
 
             {popups.length === 0 ? (
-              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center">
-                <p className="text-sm text-[#8a8480]">팝업이 없습니다.</p>
-              </div>
+              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center"><p className="text-sm text-[#8a8480]">팝업이 없습니다.</p></div>
             ) : popups.map((popup) => (
               <div key={popup.id} className={`bg-white border border-[#e8e2d9] rounded-2xl p-5 space-y-3 ${!popup.is_active ? "opacity-50" : ""}`}>
                 <div className="flex items-start justify-between gap-3">
@@ -925,19 +831,12 @@ export default function AdminPage() {
                 {popup.time_slots && popup.time_slots.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {popup.time_slots.map((slot, i) => (
-                      <span key={i} className="text-xs bg-[#f0ece5] text-[#6b6760] px-2 py-1 rounded-lg">
-                        {slot}
-                      </span>
+                      <span key={i} className="text-xs bg-[#f0ece5] text-[#6b6760] px-2 py-1 rounded-lg">{slot}</span>
                     ))}
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handlePopupEdit(popup)}
-                    className="px-3 py-1.5 border border-[#e0d9cf] rounded-lg text-xs text-[#8a8480] hover:text-[#2c2a26] hover:border-[#2c2a26] transition-colors"
-                  >
-                    수정
-                  </button>
+                  <button onClick={() => handlePopupEdit(popup)} className="px-3 py-1.5 border border-[#e0d9cf] rounded-lg text-xs text-[#8a8480] hover:text-[#2c2a26] hover:border-[#2c2a26] transition-colors">수정</button>
                 </div>
               </div>
             ))}

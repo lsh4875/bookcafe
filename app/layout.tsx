@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { Toaster } from "react-hot-toast";
 
 const notoSerif = Noto_Serif_KR({
   subsets: ["latin"],
@@ -57,6 +58,32 @@ export default function RootLayout({
     <html lang="ko">
       <body className={`${notoSerif.variable} ${notoSans.variable}`}>
         <Navbar />
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: "#2c2a26",
+              color: "#f0ebe3",
+              fontSize: "14px",
+              borderRadius: "12px",
+              padding: "12px 16px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            },
+            success: {
+              iconTheme: {
+                primary: "#c9b99a",
+                secondary: "#2c2a26",
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: "#f87171",
+                secondary: "#2c2a26",
+              },
+            },
+          }}
+        />
         {children}
       </body>
     </html>

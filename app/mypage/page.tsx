@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import toast from "react-hot-toast";
 
 type Profile = {
   id: string;
@@ -49,19 +50,15 @@ export default function MyPage() {
     address_zip: "",
   });
   const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState("");
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
 
-  // 비밀번호 변경
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     newPassword: "",
     confirmPassword: "",
   });
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordMsg, setPasswordMsg] = useState("");
-  const [passwordMsgType, setPasswordMsgType] = useState<"success" | "error">("error");
   const [isOAuthUser, setIsOAuthUser] = useState(false);
 
   useEffect(() => {
@@ -71,7 +68,6 @@ export default function MyPage() {
 
       const userId = session.user.id;
 
-      // OAuth 유저 체크 (구글 로그인은 비밀번호 변경 불가)
       const provider = session.user.app_metadata?.provider;
       if (provider && provider !== "email") {
         setIsOAuthUser(true);
@@ -109,7 +105,6 @@ export default function MyPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    setSaveMsg("");
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -123,49 +118,41 @@ export default function MyPage() {
       .eq("id", profile!.id);
 
     if (error) {
-      setSaveMsg("저장에 실패했습니다.");
+      toast.error("저장에 실패했습니다.");
     } else {
       setProfile((prev) => prev ? { ...prev, ...form } : prev);
-      setSaveMsg("저장됐습니다!");
+      toast.success("저장됐습니다!");
       setEditing(false);
-      setTimeout(() => setSaveMsg(""), 2000);
     }
     setSaving(false);
   };
 
   const handlePasswordChange = async () => {
     if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
-      setPasswordMsg("모든 항목을 입력해주세요.");
-      setPasswordMsgType("error");
+      toast.error("모든 항목을 입력해주세요.");
       return;
     }
     if (passwordForm.newPassword.length < 6) {
-      setPasswordMsg("비밀번호는 6자 이상이어야 해요.");
-      setPasswordMsgType("error");
+      toast.error("비밀번호는 6자 이상이어야 해요.");
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMsg("비밀번호가 일치하지 않아요.");
-      setPasswordMsgType("error");
+      toast.error("비밀번호가 일치하지 않아요.");
       return;
     }
 
     setPasswordSaving(true);
-    setPasswordMsg("");
 
     const { error } = await supabase.auth.updateUser({
       password: passwordForm.newPassword,
     });
 
     if (error) {
-      setPasswordMsg("비밀번호 변경에 실패했습니다.");
-      setPasswordMsgType("error");
+      toast.error("비밀번호 변경에 실패했습니다.");
     } else {
-      setPasswordMsg("비밀번호가 변경됐습니다!");
-      setPasswordMsgType("success");
+      toast.success("비밀번호가 변경됐습니다!");
       setPasswordForm({ newPassword: "", confirmPassword: "" });
       setShowPasswordForm(false);
-      setTimeout(() => setPasswordMsg(""), 3000);
     }
     setPasswordSaving(false);
   };
@@ -183,11 +170,12 @@ export default function MyPage() {
         setReservations((prev) =>
           prev.map((r) => r.id === id ? { ...r, status: "cancelled" } : r)
         );
+        toast.success("예약이 취소됐습니다.");
       } else {
-        alert("취소 처리 중 오류가 발생했습니다.");
+        toast.error("취소 처리 중 오류가 발생했습니다.");
       }
     } catch {
-      alert("네트워크 오류가 발생했습니다.");
+      toast.error("네트워크 오류가 발생했습니다.");
     } finally {
       setCancellingId(null);
     }
@@ -201,14 +189,14 @@ export default function MyPage() {
     try {
       const { error } = await supabase.rpc("delete_user");
       if (error) {
-        alert("탈퇴 처리 중 오류가 발생했습니다.");
+        toast.error("탈퇴 처리 중 오류가 발생했습니다.");
         setWithdrawing(false);
         return;
       }
       await supabase.auth.signOut();
       window.location.replace("/");
     } catch {
-      alert("네트워크 오류가 발생했습니다.");
+      toast.error("네트워크 오류가 발생했습니다.");
       setWithdrawing(false);
     }
   };
@@ -276,11 +264,9 @@ export default function MyPage() {
                 </div>
               ))}
 
-              {saveMsg && <p className="text-xs text-center text-green-600">{saveMsg}</p>}
-
               <div className="flex gap-2 pt-1">
                 <button
-                  onClick={() => { setEditing(false); setSaveMsg(""); }}
+                  onClick={() => setEditing(false)}
                   className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors"
                 >
                   취소
@@ -345,7 +331,7 @@ export default function MyPage() {
                   <input
                     type="password"
                     value={passwordForm.newPassword}
-                    onChange={(e) => { setPasswordForm((p) => ({ ...p, newPassword: e.target.value })); setPasswordMsg(""); }}
+                    onChange={(e) => setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))}
                     placeholder="6자 이상"
                     className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
                   />
@@ -355,21 +341,15 @@ export default function MyPage() {
                   <input
                     type="password"
                     value={passwordForm.confirmPassword}
-                    onChange={(e) => { setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value })); setPasswordMsg(""); }}
+                    onChange={(e) => setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))}
                     placeholder="비밀번호 재입력"
                     className="w-full px-4 py-2.5 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors"
                   />
                 </div>
 
-                {passwordMsg && (
-                  <p className={`text-xs text-center ${passwordMsgType === "success" ? "text-green-600" : "text-red-500"}`}>
-                    {passwordMsg}
-                  </p>
-                )}
-
                 <div className="flex gap-2">
                   <button
-                    onClick={() => { setShowPasswordForm(false); setPasswordMsg(""); setPasswordForm({ newPassword: "", confirmPassword: "" }); }}
+                    onClick={() => { setShowPasswordForm(false); setPasswordForm({ newPassword: "", confirmPassword: "" }); }}
                     className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors"
                   >
                     취소
