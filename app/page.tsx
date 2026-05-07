@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { createAdminSupabaseClient } from "@/lib/supabase-server";
 
+export const revalidate = 0;
+
 const SURVEY_QUESTIONS = [
   "어떤 장르를 좋아하나요?",
   "북카페에서 가장 기대하는 건?",
@@ -79,15 +81,13 @@ async function CurationSection() {
 
 async function PopupSection() {
   const supabase = createAdminSupabaseClient();
-  const { data: popup } = await supabase
+  const { data: popups } = await supabase
     .from("popups")
     .select("*")
     .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+    .order("created_at", { ascending: false });
 
-  if (!popup) return null;
+  if (!popups || popups.length === 0) return null;
 
   return (
     <section className="px-5 py-10 max-w-2xl mx-auto border-t border-[#e0d9cf]">
@@ -95,33 +95,37 @@ async function PopupSection() {
       <h2 className="text-xl font-serif font-light text-[#2c2a26] mb-6 leading-snug">
         팝업 북카페 예약
       </h2>
-      <div className="bg-[#2c2a26] text-[#f0ebe3] rounded-2xl p-6">
-        <span className="inline-block text-[10px] tracking-wider bg-white/10 text-[#c9b99a] border border-[#c9b99a]/30 px-3 py-1 rounded-full mb-3">
-          {popup.month}
-        </span>
-        <h3 className="font-serif text-lg font-normal leading-snug mb-5 text-[#f0ebe3]">
-          {popup.title}
-        </h3>
-        <dl className="grid grid-cols-2 gap-y-3 gap-x-4 mb-6 text-sm">
-          {[
-            ["장소", popup.location],
-            ["인원", popup.capacity],
-            ["시간", popup.time],
-            ["가격", popup.price],
-          ].map(([label, value]) => (
-            <div key={label} className="flex flex-col gap-0.5">
-              <dt className="text-[11px] text-[#9a8c7a]">{label}</dt>
-              <dd className="text-[#e8e0d4]">{value}</dd>
-            </div>
-          ))}
-        </dl>
-        <Link
-          href="/reservation"
-          className="block w-full bg-[#c9b99a] hover:bg-[#b8a688] text-[#2c2a26] text-sm font-medium
-                     text-center py-3 rounded-lg tracking-wide transition-colors"
-        >
-          예약 신청하기
-        </Link>
+      <div className="flex flex-col gap-4">
+        {popups.map((popup) => (
+          <div key={popup.id} className="bg-[#2c2a26] text-[#f0ebe3] rounded-2xl p-6">
+            <span className="inline-block text-[10px] tracking-wider bg-white/10 text-[#c9b99a] border border-[#c9b99a]/30 px-3 py-1 rounded-full mb-3">
+              {popup.month}
+            </span>
+            <h3 className="font-serif text-lg font-normal leading-snug mb-5 text-[#f0ebe3]">
+              {popup.title}
+            </h3>
+            <dl className="grid grid-cols-2 gap-y-3 gap-x-4 mb-6 text-sm">
+              {[
+                ["장소", popup.location],
+                ["인원", popup.capacity],
+                ["시간", popup.time],
+                ["가격", popup.price],
+              ].map(([label, value]) => (
+                <div key={label} className="flex flex-col gap-0.5">
+                  <dt className="text-[11px] text-[#9a8c7a]">{label}</dt>
+                  <dd className="text-[#e8e0d4]">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <Link
+              href="/reservation"
+              className="block w-full bg-[#c9b99a] hover:bg-[#b8a688] text-[#2c2a26] text-sm font-medium
+                         text-center py-3 rounded-lg tracking-wide transition-colors"
+            >
+              예약 신청하기
+            </Link>
+          </div>
+        ))}
       </div>
     </section>
   );
