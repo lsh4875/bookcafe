@@ -119,6 +119,7 @@ export default function AdminPage() {
   const [popupForm, setPopupForm] = useState<Omit<Popup, "id" | "is_active">>(EMPTY_POPUP);
   const [savingPopup, setSavingPopup] = useState(false);
   const [newTimeSlot, setNewTimeSlot] = useState("");
+
   const fetchAll = async () => {
     setLoading(true);
     const [resRes, memRes, surRes, curRes, popRes] = await Promise.all([
@@ -138,7 +139,7 @@ export default function AdminPage() {
     setPopups(popData.data ?? []);
     setLoading(false);
   };
-  
+
   useEffect(() => {
     const checkAdmin = async () => {
       const supabase = createClient();
@@ -156,8 +157,6 @@ export default function AdminPage() {
     };
     checkAdmin();
   }, []);
-
-
 
   const handleStatusChange = async (id: number, status: string) => {
     setUpdatingId(id);
@@ -335,6 +334,20 @@ export default function AdminPage() {
       toast.error("저장에 실패했습니다.");
     }
     setSavingPopup(false);
+  };
+
+  const handlePopupToggle = async (id: string, isActive: boolean) => {
+    const res = await fetch("/api/admin/popups", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, is_active: isActive }),
+    });
+    if (res.ok) {
+      await fetchAll();
+      toast.success(isActive ? "활성화됐습니다." : "비활성화됐습니다.");
+    } else {
+      toast.error("처리에 실패했습니다.");
+    }
   };
 
   const addTimeSlot = () => {
@@ -838,6 +851,11 @@ export default function AdminPage() {
                 )}
                 <div className="flex gap-2">
                   <button onClick={() => handlePopupEdit(popup)} className="px-3 py-1.5 border border-[#e0d9cf] rounded-lg text-xs text-[#8a8480] hover:text-[#2c2a26] hover:border-[#2c2a26] transition-colors">수정</button>
+                  {popup.is_active ? (
+                    <button onClick={() => handlePopupToggle(popup.id, false)} className="px-3 py-1.5 border border-[#e0d9cf] rounded-lg text-xs text-[#8a8480] hover:text-[#2c2a26] hover:border-[#2c2a26] transition-colors">비활성화</button>
+                  ) : (
+                    <button onClick={() => handlePopupToggle(popup.id, true)} className="px-3 py-1.5 border border-green-200 rounded-lg text-xs text-green-600 hover:text-green-800 transition-colors">활성화</button>
+                  )}
                 </div>
               </div>
             ))}

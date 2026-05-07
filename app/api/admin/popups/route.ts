@@ -44,17 +44,11 @@ export async function PATCH(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { month, title, location, capacity, time, price } = body;
-
-    // 기존 활성 팝업 비활성화
-    await supabase
-      .from("popups")
-      .update({ is_active: false })
-      .eq("is_active", true);
+    const { month, title, location, capacity, time, price, time_slots } = body;
 
     const { error } = await supabase
       .from("popups")
-      .insert([{ month, title, location, capacity, time, price, is_active: true }]);
+      .insert([{ month, title, location, capacity, time, price, time_slots, is_active: true }]);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -63,6 +57,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("[admin popups POST error]", error);
+    return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ error: "id가 누락됐습니다." }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("popups")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[admin popups DELETE error]", error);
     return NextResponse.json({ error: "서버 오류가 발생했습니다." }, { status: 500 });
   }
 }
