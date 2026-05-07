@@ -119,25 +119,6 @@ export default function AdminPage() {
   const [popupForm, setPopupForm] = useState<Omit<Popup, "id" | "is_active">>(EMPTY_POPUP);
   const [savingPopup, setSavingPopup] = useState(false);
   const [newTimeSlot, setNewTimeSlot] = useState("");
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push("/login"); return; }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", session.user.id)
-        .single();
-
-      if (!profile?.is_admin) { router.push("/"); return; }
-      fetchAll();
-    };
-    checkAdmin();
-  }, []);
-
   const fetchAll = async () => {
     setLoading(true);
     const [resRes, memRes, surRes, curRes, popRes] = await Promise.all([
@@ -157,6 +138,26 @@ export default function AdminPage() {
     setPopups(popData.data ?? []);
     setLoading(false);
   };
+  
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push("/login"); return; }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", session.user.id)
+        .single();
+
+      if (!profile?.is_admin) { router.push("/"); return; }
+      fetchAll();
+    };
+    checkAdmin();
+  }, []);
+
+
 
   const handleStatusChange = async (id: number, status: string) => {
     setUpdatingId(id);
