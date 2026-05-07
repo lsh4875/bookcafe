@@ -1,15 +1,25 @@
-import Link from "next/link";
-import { createAdminSupabaseClient } from "@/lib/supabase-server";
+"use client";
 
-export default async function NoticeBanner() {
-  const supabase = createAdminSupabaseClient();
-  const { data: notice } = await supabase
-    .from("notices")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Notice = {
+  id: string;
+  content: string;
+  link: string | null;
+};
+
+export default function NoticeBanner() {
+  const [notice, setNotice] = useState<Notice | null>(null);
+
+  useEffect(() => {
+    fetch("/api/notices")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.notice) setNotice(data.notice);
+      })
+      .catch(() => {});
+  }, []);
 
   if (!notice) return null;
 
