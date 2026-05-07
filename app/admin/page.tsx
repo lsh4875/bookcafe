@@ -350,6 +350,21 @@ export default function AdminPage() {
     }
   };
 
+  const handlePopupDelete = async (id: string) => {
+    if (!confirm("이 팝업을 삭제하시겠습니까? 복구가 불가능합니다.")) return;
+    const res = await fetch("/api/admin/popups", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (res.ok) {
+      await fetchAll();
+      toast.success("팝업이 삭제됐습니다.");
+    } else {
+      toast.error("삭제에 실패했습니다.");
+    }
+  };
+
   const addTimeSlot = () => {
     if (!newTimeSlot.trim()) return;
     setPopupForm((prev) => ({
@@ -856,6 +871,7 @@ export default function AdminPage() {
                   ) : (
                     <button onClick={() => handlePopupToggle(popup.id, true)} className="px-3 py-1.5 border border-green-200 rounded-lg text-xs text-green-600 hover:text-green-800 transition-colors">활성화</button>
                   )}
+                  <button onClick={() => handlePopupDelete(popup.id)} className="px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors">삭제</button>
                 </div>
               </div>
             ))}
