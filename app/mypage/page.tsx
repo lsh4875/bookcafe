@@ -52,6 +52,7 @@ export default function MyPage() {
   const [saving, setSaving] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [hasSurvey, setHasSurvey] = useState(false);
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
@@ -98,6 +99,15 @@ export default function MyPage() {
         .order("submitted_at", { ascending: false });
 
       setReservations(resData || []);
+
+      // 설문 참여 여부 확인
+      const { data: surveyData } = await supabase
+        .from("surveys")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      setHasSurvey(!!surveyData);
       setLoading(false);
     };
     load();
@@ -307,6 +317,30 @@ export default function MyPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* 설문 참여 여부 */}
+        <div className="bg-white border border-[#e8e2d9] rounded-2xl shadow-sm p-7">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-medium text-[#2c2a26] tracking-wide">취향 설문</h2>
+              <p className="text-xs text-[#8a8480] mt-1">
+                {hasSurvey ? "설문에 참여하셨습니다. 감사해요!" : "아직 설문에 참여하지 않으셨어요."}
+              </p>
+            </div>
+            {hasSurvey ? (
+              <span className="text-xs bg-green-50 text-green-700 px-3 py-1.5 rounded-full font-medium">
+                참여완료
+              </span>
+            ) : (
+              <button
+                onClick={() => router.push("/survey")}
+                className="text-xs bg-[#2c2a26] text-[#f8f5f0] px-3 py-1.5 rounded-lg hover:bg-[#3d3a34] transition-colors"
+              >
+                설문 참여하기
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 비밀번호 변경 */}
