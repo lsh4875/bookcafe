@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -10,10 +10,10 @@ const HIDDEN_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
 
 export default function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hasNotice, setHasNotice] = useState(false);
 
   const shouldHide = HIDDEN_PATHS.some((path) => pathname?.startsWith(path));
 
@@ -43,6 +43,12 @@ export default function Navbar() {
       }
     });
 
+    // 활성 공지 있는지 확인
+    fetch("/api/notices")
+      .then((res) => res.json())
+      .then((data) => { if (data.notice) setHasNotice(true); })
+      .catch(() => {});
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -59,6 +65,7 @@ export default function Navbar() {
     { href: "/curation", label: "큐레이션" },
     { href: "/reservation", label: "예약" },
     { href: "/survey", label: "설문" },
+    { href: "/notice", label: "공지", badge: hasNotice },
   ];
 
   return (
@@ -79,13 +86,16 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-xs tracking-wide transition-colors ${
+                className={`relative text-xs tracking-wide transition-colors ${
                   pathname === link.href
                     ? "text-[#2c2a26] font-medium"
                     : "text-[#8a8480] hover:text-[#2c2a26]"
                 }`}
               >
                 {link.label}
+                {link.badge && (
+                  <span className="absolute -top-1 -right-2 w-1.5 h-1.5 bg-[#c9b99a] rounded-full" />
+                )}
               </Link>
             ))}
           </div>
@@ -153,49 +163,29 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className={`text-sm tracking-wide transition-colors ${
+                className={`relative text-sm tracking-wide transition-colors w-fit ${
                   pathname === link.href
                     ? "text-[#2c2a26] font-medium"
                     : "text-[#8a8480]"
                 }`}
               >
                 {link.label}
+                {link.badge && (
+                  <span className="absolute -top-1 -right-2 w-1.5 h-1.5 bg-[#c9b99a] rounded-full" />
+                )}
               </Link>
             ))}
             <div className="h-px bg-[#e0d9cf]" />
             {user ? (
               <>
                 {isAdmin && (
-                  <Link
-                    href="/admin"
-                    onClick={() => setMenuOpen(false)}
-                    className="text-sm text-[#c9b99a] font-medium"
-                  >
-                    관리자
-                  </Link>
+                  <Link href="/admin" onClick={() => setMenuOpen(false)} className="text-sm text-[#c9b99a] font-medium">관리자</Link>
                 )}
-                <Link
-                  href="/mypage"
-                  onClick={() => setMenuOpen(false)}
-                  className="text-sm text-[#8a8480]"
-                >
-                  마이페이지
-                </Link>
-                <button
-                  onClick={() => { setMenuOpen(false); handleLogout(); }}
-                  className="text-sm text-left text-[#8a8480]"
-                >
-                  로그아웃
-                </button>
+                <Link href="/mypage" onClick={() => setMenuOpen(false)} className="text-sm text-[#8a8480]">마이페이지</Link>
+                <button onClick={() => { setMenuOpen(false); handleLogout(); }} className="text-sm text-left text-[#8a8480]">로그아웃</button>
               </>
             ) : (
-              <Link
-                href="/login"
-                onClick={() => setMenuOpen(false)}
-                className="text-sm text-[#2c2a26] font-medium"
-              >
-                로그인
-              </Link>
+              <Link href="/login" onClick={() => setMenuOpen(false)} className="text-sm text-[#2c2a26] font-medium">로그인</Link>
             )}
           </div>
         )}

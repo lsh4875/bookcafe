@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Noto_Serif_KR, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import NoticeBanner from "@/components/NoticeBanner";
 import { Toaster } from "react-hot-toast";
 
 const notoSerif = Noto_Serif_KR({
@@ -58,7 +57,6 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${notoSerif.variable} ${notoSans.variable}`}>
-        <NoticeBanner />
         <Navbar />
         <Toaster
           position="top-center"
