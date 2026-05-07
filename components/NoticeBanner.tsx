@@ -11,17 +11,19 @@ type Notice = {
 
 export default function NoticeBanner() {
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch("/api/notices")
       .then((res) => res.json())
       .then((data) => {
         if (data.notice) setNotice(data.notice);
+        setLoaded(true);
       })
-      .catch(() => {});
+      .catch(() => setLoaded(true));
   }, []);
 
-  if (!notice) return null;
+  if (!loaded || !notice) return null;
 
   return (
     <div className="w-full bg-[#2c2a26] text-[#f0ebe3] px-4 py-2.5 flex items-center justify-center gap-3 text-xs tracking-wide">
