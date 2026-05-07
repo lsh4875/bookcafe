@@ -76,6 +76,14 @@ type Popup = {
   time_slots: string[];
 };
 
+type Notice = {
+  id: string;
+  content: string;
+  link: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
 const STATUS_LABEL: Record<string, { label: string; style: string }> = {
   pending: { label: "대기", style: "bg-[#f5f0ea] text-[#9a8c7a]" },
   confirmed: { label: "확정", style: "bg-green-50 text-green-700" },
@@ -96,7 +104,7 @@ const EMPTY_POPUP: Omit<Popup, "id" | "is_active"> = {
   month: "", title: "", location: "", capacity: "", time: "", price: "", time_slots: [],
 };
 
-type Tab = "dashboard" | "reservations" | "members" | "surveys" | "curations" | "popups";
+type Tab = "dashboard" | "reservations" | "members" | "surveys" | "curations" | "popups" | "notices";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -106,6 +114,7 @@ export default function AdminPage() {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [curations, setCurations] = useState<Curation[]>([]);
   const [popups, setPopups] = useState<Popup[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
@@ -120,23 +129,29 @@ export default function AdminPage() {
   const [savingPopup, setSavingPopup] = useState(false);
   const [newTimeSlot, setNewTimeSlot] = useState("");
 
+  const [showNoticeForm, setShowNoticeForm] = useState(false);
+  const [noticeForm, setNoticeForm] = useState({ content: "", link: "" });
+  const [savingNotice, setSavingNotice] = useState(false);
+
   const fetchAll = async () => {
     setLoading(true);
-    const [resRes, memRes, surRes, curRes, popRes] = await Promise.all([
+    const [resRes, memRes, surRes, curRes, popRes, notRes] = await Promise.all([
       fetch("/api/admin/reservations"),
       fetch("/api/admin/members"),
       fetch("/api/admin/surveys"),
       fetch("/api/admin/curations"),
       fetch("/api/admin/popups"),
+      fetch("/api/admin/notices"),
     ]);
-    const [resData, memData, surData, curData, popData] = await Promise.all([
-      resRes.json(), memRes.json(), surRes.json(), curRes.json(), popRes.json(),
+    const [resData, memData, surData, curData, popData, notData] = await Promise.all([
+      resRes.json(), memRes.json(), surRes.json(), curRes.json(), popRes.json(), notRes.json(),
     ]);
     setReservations(resData.data ?? []);
     setMembers(memData.data ?? []);
     setSurveys(surData.data ?? []);
     setCurations(curData.data ?? []);
     setPopups(popData.data ?? []);
+    setNotices(notData.data ?? []);
     setLoading(false);
   };
 
@@ -365,6 +380,54 @@ export default function AdminPage() {
     }
   };
 
+  const handleNoticeSave = async () => {
+    if (!noticeForm.content.trim()) { toast.error("내용을 입력해주세요."); return; }
+    setSavingNotice(true);
+    const res = await fetch("/api/admin/notices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(noticeForm),
+    });
+    if (res.ok) {
+      await fetchAll();
+      setShowNoticeForm(false);
+      setNoticeForm({ content: "", link: "" });
+      toast.success("공지가 등록됐습니다.");
+    } else {
+      toast.error("저장에 실패했습니다.");
+    }
+    setSavingNotice(false);
+  };
+
+  const handleNoticeToggle = async (id: string, isActive: boolean) => {
+    const res = await fetch("/api/admin/notices", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, is_active: isActive }),
+    });
+    if (res.ok) {
+      await fetchAll();
+      toast.success(isActive ? "공지가 활성화됐습니다." : "공지가 비활성화됐습니다.");
+    } else {
+      toast.error("처리에 실패했습니다.");
+    }
+  };
+
+  const handleNoticeDelete = async (id: string) => {
+    if (!confirm("이 공지를 삭제하시겠습니까?")) return;
+    const res = await fetch("/api/admin/notices", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (res.ok) {
+      await fetchAll();
+      toast.success("공지가 삭제됐습니다.");
+    } else {
+      toast.error("삭제에 실패했습니다.");
+    }
+  };
+
   const addTimeSlot = () => {
     if (!newTimeSlot.trim()) return;
     setPopupForm((prev) => ({
@@ -434,6 +497,7 @@ export default function AdminPage() {
     { key: "surveys", label: `설문 결과 (${surveys.length})` },
     { key: "curations", label: `큐레이션 관리 (${curations.length})` },
     { key: "popups", label: `팝업 관리 (${popups.length})` },
+    { key: "notices", label: `공지 관리 (${notices.length})` },
   ];
 
   const inputCls = "w-full px-3 py-2 rounded-lg border border-[#e0d9cf] bg-[#f8f5f0] text-sm text-[#2c2a26] placeholder:text-[#bdb8b0] outline-none focus:border-[#c9b99a] focus:bg-white transition-colors";
@@ -448,12 +512,7 @@ export default function AdminPage() {
             <p className="text-xs tracking-[0.3em] text-[#c9b99a] uppercase mb-1">Admin</p>
             <h1 className="text-2xl font-bold text-[#2c2a26]">관리자 페이지</h1>
           </div>
-          <button
-            onClick={() => router.push("/")}
-            className="text-xs text-[#8a8480] hover:text-[#2c2a26] border border-[#e0d9cf] px-3 py-1.5 rounded-lg transition-colors"
-          >
-            홈으로
-          </button>
+          <button onClick={() => router.push("/")} className="text-xs text-[#8a8480] hover:text-[#2c2a26] border border-[#e0d9cf] px-3 py-1.5 rounded-lg transition-colors">홈으로</button>
         </div>
 
         {/* 탭 */}
@@ -463,9 +522,7 @@ export default function AdminPage() {
               key={key}
               onClick={() => setTab(key)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                tab === key
-                  ? "bg-[#2c2a26] text-[#f8f5f0]"
-                  : "bg-white border border-[#e0d9cf] text-[#8a8480] hover:text-[#2c2a26]"
+                tab === key ? "bg-[#2c2a26] text-[#f8f5f0]" : "bg-white border border-[#e0d9cf] text-[#8a8480] hover:text-[#2c2a26]"
               }`}
             >
               {label}
@@ -489,7 +546,6 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { label: "전체 회원", value: members.length },
@@ -502,7 +558,6 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
-
             <div className="bg-white border border-[#e8e2d9] rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-[#2c2a26]">최근 예약</h3>
@@ -522,7 +577,6 @@ export default function AdminPage() {
               })}
               {reservations.length === 0 && <p className="text-sm text-[#8a8480] text-center py-4">예약 내역이 없습니다.</p>}
             </div>
-
             <div className="bg-white border border-[#e8e2d9] rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-[#2c2a26]">최근 가입 회원</h3>
@@ -548,9 +602,7 @@ export default function AdminPage() {
         {tab === "reservations" && (
           <div className="space-y-3">
             {reservations.length === 0 ? (
-              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center">
-                <p className="text-sm text-[#8a8480]">예약 내역이 없습니다.</p>
-              </div>
+              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center"><p className="text-sm text-[#8a8480]">예약 내역이 없습니다.</p></div>
             ) : reservations.map((res) => {
               const statusInfo = STATUS_LABEL[res.status] ?? STATUS_LABEL.pending;
               return (
@@ -581,20 +633,13 @@ export default function AdminPage() {
                         onClick={() => handleStatusChange(res.id, status)}
                         disabled={res.status === status || updatingId === res.id}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 ${
-                          res.status === status
-                            ? "bg-[#2c2a26] text-[#f8f5f0]"
-                            : "border border-[#e0d9cf] text-[#8a8480] hover:text-[#2c2a26] hover:border-[#2c2a26]"
+                          res.status === status ? "bg-[#2c2a26] text-[#f8f5f0]" : "border border-[#e0d9cf] text-[#8a8480] hover:text-[#2c2a26] hover:border-[#2c2a26]"
                         }`}
                       >
                         {updatingId === res.id ? "..." : label}
                       </button>
                     ))}
-                    <button
-                      onClick={() => handleReservationDelete(res.id)}
-                      className="ml-auto px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors"
-                    >
-                      삭제
-                    </button>
+                    <button onClick={() => handleReservationDelete(res.id)} className="ml-auto px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors">삭제</button>
                   </div>
                 </div>
               );
@@ -606,9 +651,7 @@ export default function AdminPage() {
         {tab === "members" && (
           <div className="space-y-3">
             {members.length === 0 ? (
-              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center">
-                <p className="text-sm text-[#8a8480]">회원이 없습니다.</p>
-              </div>
+              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center"><p className="text-sm text-[#8a8480]">회원이 없습니다.</p></div>
             ) : members.map((member) => (
               <div key={member.id} className="bg-white border border-[#e8e2d9] rounded-2xl p-5 space-y-2">
                 <div className="flex items-start justify-between gap-3">
@@ -631,9 +674,7 @@ export default function AdminPage() {
                 </div>
                 {!member.is_admin && (
                   <div className="flex justify-end pt-1">
-                    <button onClick={() => handleMemberDelete(member.id)} className="px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors">
-                      탈퇴
-                    </button>
+                    <button onClick={() => handleMemberDelete(member.id)} className="px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors">탈퇴</button>
                   </div>
                 )}
               </div>
@@ -645,9 +686,7 @@ export default function AdminPage() {
         {tab === "surveys" && (
           <div className="space-y-5">
             {surveys.length === 0 ? (
-              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center">
-                <p className="text-sm text-[#8a8480]">설문 응답이 없습니다.</p>
-              </div>
+              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center"><p className="text-sm text-[#8a8480]">설문 응답이 없습니다.</p></div>
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -707,33 +746,15 @@ export default function AdminPage() {
             <div className="flex justify-end">
               <button onClick={handleCurationNew} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">+ 새 큐레이션</button>
             </div>
-
             {showCurationForm && (
               <div className="bg-white border border-[#e8e2d9] rounded-2xl p-6 space-y-5">
                 <h3 className="text-sm font-medium text-[#2c2a26]">{editingCuration ? "큐레이션 수정" : "새 큐레이션 추가"}</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">제목</label>
-                    <input value={curationForm.title} onChange={(e) => setCurationForm((p) => ({ ...p, title: e.target.value }))} placeholder="큐레이션 제목" className={inputCls} />
-                  </div>
-                  <div className="col-span-2 space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">부제목</label>
-                    <input value={curationForm.subtitle} onChange={(e) => setCurationForm((p) => ({ ...p, subtitle: e.target.value }))} placeholder="부제목" className={inputCls} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">이모지</label>
-                    <input value={curationForm.emoji} onChange={(e) => setCurationForm((p) => ({ ...p, emoji: e.target.value }))} placeholder="🌙" className={inputCls} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">분위기</label>
-                    <select value={curationForm.mood} onChange={(e) => setCurationForm((p) => ({ ...p, mood: e.target.value }))} className={inputCls}>
-                      {MOOD_OPTIONS.map((m) => (<option key={m} value={m}>{m}</option>))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-[#8a8480]">순서</label>
-                    <input type="number" value={curationForm.order_index} onChange={(e) => setCurationForm((p) => ({ ...p, order_index: Number(e.target.value) }))} className={inputCls} />
-                  </div>
+                  <div className="col-span-2 space-y-1.5"><label className="text-xs text-[#8a8480]">제목</label><input value={curationForm.title} onChange={(e) => setCurationForm((p) => ({ ...p, title: e.target.value }))} placeholder="큐레이션 제목" className={inputCls} /></div>
+                  <div className="col-span-2 space-y-1.5"><label className="text-xs text-[#8a8480]">부제목</label><input value={curationForm.subtitle} onChange={(e) => setCurationForm((p) => ({ ...p, subtitle: e.target.value }))} placeholder="부제목" className={inputCls} /></div>
+                  <div className="space-y-1.5"><label className="text-xs text-[#8a8480]">이모지</label><input value={curationForm.emoji} onChange={(e) => setCurationForm((p) => ({ ...p, emoji: e.target.value }))} placeholder="🌙" className={inputCls} /></div>
+                  <div className="space-y-1.5"><label className="text-xs text-[#8a8480]">분위기</label><select value={curationForm.mood} onChange={(e) => setCurationForm((p) => ({ ...p, mood: e.target.value }))} className={inputCls}>{MOOD_OPTIONS.map((m) => (<option key={m} value={m}>{m}</option>))}</select></div>
+                  <div className="space-y-1.5"><label className="text-xs text-[#8a8480]">순서</label><input type="number" value={curationForm.order_index} onChange={(e) => setCurationForm((p) => ({ ...p, order_index: Number(e.target.value) }))} className={inputCls} /></div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -744,9 +765,7 @@ export default function AdminPage() {
                     <div key={i} className="border border-[#e8e2d9] rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-[#c9b99a]">{i + 1}번째 책</span>
-                        {curationForm.books.length > 1 && (
-                          <button onClick={() => removeBook(i)} className="text-xs text-red-400 hover:text-red-600 transition-colors">삭제</button>
-                        )}
+                        {curationForm.books.length > 1 && <button onClick={() => removeBook(i)} className="text-xs text-red-400 hover:text-red-600 transition-colors">삭제</button>}
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="col-span-2 space-y-1"><label className="text-xs text-[#8a8480]">제목</label><input value={book.title} onChange={(e) => updateBook(i, "title", e.target.value)} placeholder="책 제목" className={inputCls} /></div>
@@ -761,13 +780,10 @@ export default function AdminPage() {
                 </div>
                 <div className="flex gap-2 pt-2">
                   <button onClick={() => { setShowCurationForm(false); setEditingCuration(null); }} className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-sm text-[#8a8480] hover:text-[#2c2a26] transition-colors">취소</button>
-                  <button onClick={handleCurationSave} disabled={savingCuration} className="flex-1 py-2.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm hover:bg-[#3d3a34] transition-colors disabled:opacity-60">
-                    {savingCuration ? "저장 중..." : "저장"}
-                  </button>
+                  <button onClick={handleCurationSave} disabled={savingCuration} className="flex-1 py-2.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm hover:bg-[#3d3a34] transition-colors disabled:opacity-60">{savingCuration ? "저장 중..." : "저장"}</button>
                 </div>
               </div>
             )}
-
             {curations.length === 0 ? (
               <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center"><p className="text-sm text-[#8a8480]">큐레이션이 없습니다.</p></div>
             ) : curations.map((curation) => (
@@ -777,9 +793,7 @@ export default function AdminPage() {
                     <p className="text-sm font-medium text-[#2c2a26]">{curation.emoji} {curation.title}</p>
                     <p className="text-xs text-[#8a8480] mt-0.5">{curation.subtitle}</p>
                   </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${curation.is_active ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"}`}>
-                    {curation.is_active ? "활성" : "비활성"}
-                  </span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${curation.is_active ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"}`}>{curation.is_active ? "활성" : "비활성"}</span>
                 </div>
                 <p className="text-xs text-[#8a8480]">분위기: {curation.mood} · 순서: {curation.order_index} · 책 {curation.books?.length ?? 0}권</p>
                 <div className="flex gap-2">
@@ -802,7 +816,6 @@ export default function AdminPage() {
             <div className="flex justify-end">
               <button onClick={handlePopupNew} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">+ 새 팝업</button>
             </div>
-
             {showPopupForm && (
               <div className="bg-white border border-[#e8e2d9] rounded-2xl p-6 space-y-4">
                 <h3 className="text-sm font-medium text-[#2c2a26]">{editingPopup ? "팝업 수정" : "새 팝업 추가"}</h3>
@@ -831,13 +844,10 @@ export default function AdminPage() {
                 </div>
                 <div className="flex gap-2 pt-2">
                   <button onClick={() => { setShowPopupForm(false); setEditingPopup(null); }} className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-sm text-[#8a8480] hover:text-[#2c2a26] transition-colors">취소</button>
-                  <button onClick={handlePopupSave} disabled={savingPopup} className="flex-1 py-2.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm hover:bg-[#3d3a34] transition-colors disabled:opacity-60">
-                    {savingPopup ? "저장 중..." : "저장"}
-                  </button>
+                  <button onClick={handlePopupSave} disabled={savingPopup} className="flex-1 py-2.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm hover:bg-[#3d3a34] transition-colors disabled:opacity-60">{savingPopup ? "저장 중..." : "저장"}</button>
                 </div>
               </div>
             )}
-
             {popups.length === 0 ? (
               <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center"><p className="text-sm text-[#8a8480]">팝업이 없습니다.</p></div>
             ) : popups.map((popup) => (
@@ -847,9 +857,7 @@ export default function AdminPage() {
                     <p className="text-sm font-medium text-[#2c2a26]">{popup.title}</p>
                     <p className="text-xs text-[#8a8480] mt-0.5">{popup.month}</p>
                   </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${popup.is_active ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"}`}>
-                    {popup.is_active ? "활성" : "비활성"}
-                  </span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${popup.is_active ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"}`}>{popup.is_active ? "활성" : "비활성"}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[#8a8480]">
                   <p>📍 {popup.location}</p>
@@ -872,6 +880,64 @@ export default function AdminPage() {
                     <button onClick={() => handlePopupToggle(popup.id, true)} className="px-3 py-1.5 border border-green-200 rounded-lg text-xs text-green-600 hover:text-green-800 transition-colors">활성화</button>
                   )}
                   <button onClick={() => handlePopupDelete(popup.id)} className="px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors">삭제</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 공지 관리 */}
+        {tab === "notices" && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button onClick={() => setShowNoticeForm(true)} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">+ 새 공지</button>
+            </div>
+            {showNoticeForm && (
+              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-6 space-y-4">
+                <h3 className="text-sm font-medium text-[#2c2a26]">새 공지 등록</h3>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#8a8480]">공지 내용 <span className="text-[#c9b99a]">*</span></label>
+                  <input
+                    value={noticeForm.content}
+                    onChange={(e) => setNoticeForm((p) => ({ ...p, content: e.target.value }))}
+                    placeholder="5월 팝업 북카페 예약이 시작됐어요!"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#8a8480]">링크 (선택)</label>
+                  <input
+                    value={noticeForm.link}
+                    onChange={(e) => setNoticeForm((p) => ({ ...p, link: e.target.value }))}
+                    placeholder="/reservation"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button onClick={() => { setShowNoticeForm(false); setNoticeForm({ content: "", link: "" }); }} className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-sm text-[#8a8480] hover:text-[#2c2a26] transition-colors">취소</button>
+                  <button onClick={handleNoticeSave} disabled={savingNotice} className="flex-1 py-2.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm hover:bg-[#3d3a34] transition-colors disabled:opacity-60">{savingNotice ? "저장 중..." : "저장"}</button>
+                </div>
+              </div>
+            )}
+            {notices.length === 0 ? (
+              <div className="bg-white border border-[#e8e2d9] rounded-2xl p-10 text-center"><p className="text-sm text-[#8a8480]">등록된 공지가 없습니다.</p></div>
+            ) : notices.map((notice) => (
+              <div key={notice.id} className={`bg-white border border-[#e8e2d9] rounded-2xl p-5 space-y-3 ${!notice.is_active ? "opacity-50" : ""}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm text-[#2c2a26]">{notice.content}</p>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 ${notice.is_active ? "bg-green-50 text-green-700" : "bg-[#f5f0ea] text-[#9a8c7a]"}`}>
+                    {notice.is_active ? "활성" : "비활성"}
+                  </span>
+                </div>
+                {notice.link && <p className="text-xs text-[#8a8480]">🔗 {notice.link}</p>}
+                <p className="text-xs text-[#b0aba4]">{new Date(notice.created_at).toLocaleDateString("ko-KR")}</p>
+                <div className="flex gap-2">
+                  {notice.is_active ? (
+                    <button onClick={() => handleNoticeToggle(notice.id, false)} className="px-3 py-1.5 border border-[#e0d9cf] rounded-lg text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors">비활성화</button>
+                  ) : (
+                    <button onClick={() => handleNoticeToggle(notice.id, true)} className="px-3 py-1.5 border border-green-200 rounded-lg text-xs text-green-600 hover:text-green-800 transition-colors">활성화</button>
+                  )}
+                  <button onClick={() => handleNoticeDelete(notice.id)} className="px-3 py-1.5 border border-red-200 rounded-lg text-xs text-red-400 hover:text-red-600 transition-colors">삭제</button>
                 </div>
               </div>
             ))}
