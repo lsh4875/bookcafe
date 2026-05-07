@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   if (!profile?.is_onboarded) {
     try {
       const { data, error: emailError } = await resend.emails.send({
-        from: "일오책방 <onboarding@resend.dev>",
+        from: "일오책방 <hello@ilobookcafe.com>",
         to: user.email!,
         subject: "[일오책방] 환영합니다!",
         html: welcomeEmailHtml({ name: profile?.name || "회원" }),

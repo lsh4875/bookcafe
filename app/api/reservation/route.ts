@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     // 예약 완료 이메일 발송
     try {
       const { data, error: emailError } = await resend.emails.send({
-        from: "일오책방 <onboarding@resend.dev>",
+        from: "일오책방 <hello@ilobookcafe.com>",
         to: email,
         subject: "[일오책방] 예약이 접수되었습니다",
         html: reservationEmailHtml({
