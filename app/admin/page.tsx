@@ -130,6 +130,7 @@ export default function AdminPage() {
   const [newTimeSlot, setNewTimeSlot] = useState("");
 
   const [showNoticeForm, setShowNoticeForm] = useState(false);
+  const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
   const [noticeForm, setNoticeForm] = useState({ content: "", link: "" });
   const [savingNotice, setSavingNotice] = useState(false);
 
@@ -383,16 +384,23 @@ export default function AdminPage() {
   const handleNoticeSave = async () => {
     if (!noticeForm.content.trim()) { toast.error("내용을 입력해주세요."); return; }
     setSavingNotice(true);
+
+    const method = editingNotice ? "PATCH" : "POST";
+    const body = editingNotice
+      ? { id: editingNotice.id, content: noticeForm.content, link: noticeForm.link || null }
+      : { content: noticeForm.content, link: noticeForm.link || null };
+
     const res = await fetch("/api/admin/notices", {
-      method: "POST",
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(noticeForm),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       await fetchAll();
       setShowNoticeForm(false);
+      setEditingNotice(null);
       setNoticeForm({ content: "", link: "" });
-      toast.success("공지가 등록됐습니다.");
+      toast.success(editingNotice ? "공지가 수정됐습니다." : "공지가 등록됐습니다.");
     } else {
       toast.error("저장에 실패했습니다.");
     }
@@ -890,11 +898,11 @@ export default function AdminPage() {
         {tab === "notices" && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button onClick={() => setShowNoticeForm(true)} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">+ 새 공지</button>
+              <button onClick={() => { setShowNoticeForm(true); setEditingNotice(null); setNoticeForm({ content: "", link: "" }); }} className="px-4 py-2 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm font-medium hover:bg-[#3d3a34] transition-colors">+ 새 공지</button>
             </div>
             {showNoticeForm && (
               <div className="bg-white border border-[#e8e2d9] rounded-2xl p-6 space-y-4">
-                <h3 className="text-sm font-medium text-[#2c2a26]">새 공지 등록</h3>
+                <h3 className="text-sm font-medium text-[#2c2a26]">{editingNotice ? "공지 수정" : "새 공지 등록"}</h3>
                 <div className="space-y-1.5">
                   <label className="text-xs text-[#8a8480]">공지 내용 <span className="text-[#c9b99a]">*</span></label>
                   <input
@@ -914,7 +922,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => { setShowNoticeForm(false); setNoticeForm({ content: "", link: "" }); }} className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-sm text-[#8a8480] hover:text-[#2c2a26] transition-colors">취소</button>
+                  <button onClick={() => { setShowNoticeForm(false); setEditingNotice(null); setNoticeForm({ content: "", link: "" }); }} className="flex-1 py-2.5 border border-[#e0d9cf] rounded-xl text-sm text-[#8a8480] hover:text-[#2c2a26] transition-colors">취소</button>
                   <button onClick={handleNoticeSave} disabled={savingNotice} className="flex-1 py-2.5 bg-[#2c2a26] text-[#f8f5f0] rounded-xl text-sm hover:bg-[#3d3a34] transition-colors disabled:opacity-60">{savingNotice ? "저장 중..." : "저장"}</button>
                 </div>
               </div>
@@ -932,6 +940,16 @@ export default function AdminPage() {
                 {notice.link && <p className="text-xs text-[#8a8480]">🔗 {notice.link}</p>}
                 <p className="text-xs text-[#b0aba4]">{new Date(notice.created_at).toLocaleDateString("ko-KR")}</p>
                 <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingNotice(notice);
+                      setNoticeForm({ content: notice.content, link: notice.link || "" });
+                      setShowNoticeForm(true);
+                    }}
+                    className="px-3 py-1.5 border border-[#e0d9cf] rounded-lg text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors"
+                  >
+                    수정
+                  </button>
                   {notice.is_active ? (
                     <button onClick={() => handleNoticeToggle(notice.id, false)} className="px-3 py-1.5 border border-[#e0d9cf] rounded-lg text-xs text-[#8a8480] hover:text-[#2c2a26] transition-colors">비활성화</button>
                   ) : (
