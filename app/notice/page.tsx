@@ -60,10 +60,8 @@ export default function NoticePage() {
                   <p className="text-sm text-[#2c2a26] leading-relaxed">{notice.content}</p>
                 </div>
                 {notice.link && (
-                  <a>
-                    href={notice.link}
-                    className="block text-xs text-[#c9b99a] hover:text-[#2c2a26] transition-colors ml-8 mb-2"
-                    
+                  <a href={notice.link} className="block text-xs text-[#c9b99a] hover:text-[#2c2a26] transition-colors ml-8 mb-2">
+                    자세히 보기 →
                   </a>
                 )}
                 <p className="text-xs text-[#b0aba4] ml-8">
