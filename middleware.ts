@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   "/survey",
   "/curation",
   "/reservation",
+  "/notice",
 ];
 
 const supabaseAdmin = createClient(
@@ -22,8 +23,6 @@ const supabaseAdmin = createClient(
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // ✅ API 요청은 로그인 여부와 관계없이 통과
-  // /api/survey 같은 비로그인 설문 제출이 여기서 막히면 안 됨
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
@@ -69,17 +68,14 @@ export async function middleware(req: NextRequest) {
     (path) => pathname === path || pathname.startsWith(path + "/")
   );
 
-  // ✅ 비로그인 + 비공개 경로 → 로그인 페이지
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // ✅ 로그인 상태 + 로그인 페이지 접근 → 홈으로
   if (user && pathname.startsWith("/login")) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // ✅ 관리자 페이지 권한 체크
   if (user && pathname.startsWith("/admin")) {
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -92,7 +88,6 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // ✅ 온보딩 미완료 유저 처리
   if (
     user &&
     !pathname.startsWith("/onboarding") &&
