@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase-server";
+import { Resend } from "resend";
+import { reservationConfirmedEmailHtml } from "@/lib/email/templates";
 
 const supabase = createAdminSupabaseClient();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function GET() {
   const { data, error } = await supabase
@@ -32,6 +35,34 @@ export async function PATCH(req: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // 확정 시 이메일 발송
+    if (status === "confirmed") {
+      const { data: reservation } = await supabase
+        .from("reservations")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (reservation) {
+        try {
+          await resend.emails.send({
+            from: "일오책방 <hello@ilobookcafe.com>",
+            to: reservation.email,
+            subject: "[일오책방] 예약이 확정되었습니다 🎉",
+            html: reservationConfirmedEmailHtml({
+              name: reservation.name,
+              popup: reservation.popup,
+              place: reservation.place,
+              timeSlot: reservation.time_slot,
+              headcount: reservation.headcount,
+            }),
+          });
+        } catch (emailError) {
+          console.error("[확정 이메일 발송 오류]", emailError);
+        }
+      }
     }
 
     return NextResponse.json({ ok: true });
